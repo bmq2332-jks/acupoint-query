@@ -657,6 +657,9 @@
           <div class="dropdown-item" data-action="about">
             <span class="item-icon">ℹ️</span> 關於本站
           </div>
+          <div class="dropdown-item" data-action="tcm-helper">
+            <span class="item-icon">🏥</span> 中醫診療助手
+          </div>
         </div>
       </div>
       <button id="menuBtn" aria-label="選單">☰</button>
@@ -5781,6 +5784,9 @@ document.querySelectorAll('.dropdown-item').forEach(item => {
           '• 行動裝置響應式設計\n\n' +
           '資料來源：傳統中醫經絡學說\n' +
           '聲明：本工具僅供參考學習，不構成醫療建議。');
+        break;
+      case 'tcm-helper':
+        window.open('https://bmq2332-jks.github.io/tcm-helper/', '_blank');
         break;
     }
   });
