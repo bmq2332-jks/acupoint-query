@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>經絡穴位查詢系統</title>
+<style>
+  /* ===== RESET & BASE ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 15px; }
+  body {
+    font-family: -apple-system, 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    background: #f5f0eb;
+    color: #2c2418;
+    height: 100vh;
+    overflow: hidden;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* ===== LAYOUT ===== */
+  #app {
+    display: flex;
+    height: 100vh;
+    max-width: 1400px;
+    margin: 0 auto;
+    background: #faf8f5;
+    box-shadow: 0 0 40px rgba(0,0,0,0.06);
+  }
+
+  /* ===== HEADER ===== */
+  #header {
+    display: none;
+    padding: 16px 20px;
+    background: #2c2418;
+    color: #f5f0eb;
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    justify-content: space-between;
+    align-items: center;
+  }
+  #header .brand span { color: #c9a86c; }
+  #menuBtn { background: none; border: none; color: #f5f0eb; font-size: 1.4rem; cursor: pointer; display: none; }
+
+  /* ===== SIDEBAR ===== */
+  #sidebar {
+    width: 340px;
+    min-width: 340px;
+    background: #f8f4ef;
+    border-right: 1px solid #e8e0d8;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #sidebar .sidebar-header {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid #e8e0d8;
+    background: #faf6f1;
+  }
+  #sidebar .sidebar-header h1 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #2c2418;
+    letter-spacing: 2px;
+  }
+  #sidebar .sidebar-header h1 small {
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: #8a7a6a;
+    display: block;
+    margin-top: 2px;
+    letter-spacing: 0.5px;
+  }
+  #sidebar .sidebar-header .total-count {
+    font-size: 0.75rem;
+    color: #8a7a6a;
+    margin-top: 6px;
+  }
+
+  /* SEARCH */
+  #searchWrap {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e8e0d8;
+  }
+  #searchInput {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #ddd6ce;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    background: #fff;
+    color: #2c2418;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  #searchInput:focus {
+    border-color: #8a7a6a;
+    box-shadow: 0 0 0 3px rgba(138,122,106,0.12);
+  }
+  #searchInput::placeholder { color: #b0a69a; }
+
+  /* MERIDIAN LIST */
+  #meridianList {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+  #meridianList::-webkit-scrollbar { width: 5px; }
+  #meridianList::-webkit-scrollbar-thumb { background: #ddd6ce; border-radius: 4px; }
+  #meridianList::-webkit-scrollbar-track { background: transparent; }
+
+  .meridian-group { margin-bottom: 4px; }
+  .meridian-group-label {
+    padding: 6px 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #a09080;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding-top: 14px;
+  }
+
+  .meridian-item { }
+  .meridian-header {
+    display: flex;
+    align-items: center;
+    padding: 8px 20px 8px 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+    user-select: none;
+    gap: 6px;
+  }
+  .meridian-header:hover { background: #efe9e2; }
+  .meridian-header .arrow {
+    width: 18px;
+    font-size: 0.65rem;
+    color: #b0a69a;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+    text-align: center;
+  }
+  .meridian-header.open .arrow { transform: rotate(90deg); }
+  .meridian-header .meridian-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #3d3228;
+    flex: 1;
+  }
+  .meridian-header .meridian-code {
+    font-size: 0.7rem;
+    color: #a09080;
+    font-weight: 400;
+    margin-right: 4px;
+  }
+  .meridian-header .meridian-count {
+    font-size: 0.65rem;
+    color: #b0a69a;
+    background: #f0eae4;
+    padding: 1px 8px;
+    border-radius: 10px;
+  }
+  .meridian-header .meridian-path {
+    display: none;
+  }
+
+  .acupoint-list { display: none; }
+  .acupoint-list.open { display: block; }
+
+  .acupoint-item {
+    display: flex;
+    align-items: center;
+    padding: 5px 20px 5px 48px;
+    cursor: pointer;
+    transition: background 0.12s;
+    font-size: 0.85rem;
+    gap: 8px;
+  }
+  .acupoint-item:hover { background: #efe9e2; }
+  .acupoint-item.active {
+    background: #e3d9d0;
+    border-left: 3px solid #8a6d4b;
+    padding-left: 45px;
+  }
+  .acupoint-item .point-code {
+    font-size: 0.7rem;
+    color: #a09080;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    min-width: 42px;
+  }
+  .acupoint-item .point-name {
+    font-weight: 500;
+    color: #3d3228;
+  }
+
+  /* ===== MAIN CONTENT ===== */
+  #main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 40px 48px;
+    background: #faf8f5;
+  }
+  #main::-webkit-scrollbar { width: 5px; }
+  #main::-webkit-scrollbar-thumb { background: #ddd6ce; border-radius: 4px; }
+  #main::-webkit-scrollbar-track { background: transparent; }
+
+  /* EMPTY STATE */
+  #emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    color: #b0a69a;
+  }
+  #emptyState .icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.5; }
+  #emptyState h2 { font-size: 1.2rem; font-weight: 600; color: #8a7a6a; margin-bottom: 8px; }
+  #emptyState p { font-size: 0.85rem; max-width: 320px; line-height: 1.6; }
+
+  /* DETAIL VIEW */
+  #detailView { display: none; }
+
+  .detail-header {
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e8e0d8;
+  }
+  .detail-header .point-title {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .detail-header .point-title h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2c2418;
+  }
+  .detail-header .point-title .point-code-badge {
+    font-size: 1.1rem;
+    color: #8a7a6a;
+    font-weight: 400;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    background: #f0eae4;
+    padding: 4px 14px;
+    border-radius: 6px;
+  }
+  .detail-header .point-meridian {
+    font-size: 0.9rem;
+    color: #6a5a4a;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .detail-header .point-meridian .meridian-tag {
+    background: #e3d9d0;
+    padding: 3px 12px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+
+  .detail-section {
+    margin-bottom: 24px;
+  }
+  .detail-section h3 {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #8a7a6a;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  .detail-section .section-body {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: #3d3228;
+  }
+
+  .detail-location {
+    background: #f8f4ef;
+    border-radius: 8px;
+    padding: 16px 20px;
+    border-left: 3px solid #c9a86c;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: #3d3228;
+  }
+
+  .detail-categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .detail-categories .cat-tag {
+    background: #c9a86c;
+    color: #2c2418;
+    font-size: 0.7rem;
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  .detail-functions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .detail-functions .func-tag {
+    background: #f0eae4;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    color: #3d3228;
+    border: 1px solid #e0d6ce;
+  }
+
+  /* MERIDIAN INFO IN DETAIL */
+  .meridian-info-box {
+    background: #f8f4ef;
+    border-radius: 8px;
+    padding: 16px 20px;
+    border-left: 3px solid #8a6d4b;
+  }
+  .meridian-info-box .path-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #8a7a6a;
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+  .meridian-info-box .path-text {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #3d3228;
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    #app { flex-direction: column; }
+    #header { display: flex; }
+    #menuBtn { display: block; }
+    #sidebar {
+      width: 100%;
+      min-width: 0;
+      max-height: 50vh;
+      border-right: none;
+      border-bottom: 1px solid #e8e0d8;
+    }
+    #sidebar.collapsed { max-height: 0; overflow: hidden; }
+    #main { padding: 24px 20px; }
+    .detail-header .point-title h2 { font-size: 1.5rem; }
+  }
+
+  /* NO RESULTS */
+  .no-results {
+    padding: 24px 20px;
+    text-align: center;
+    color: #b0a69a;
+    font-size: 0.85rem;
+  }
+
+  /* HIGHLIGHT */
+  .highlight { background: #f7e9c0; padding: 0 2px; border-radius: 2px; }
+
+  /* ANIMATION */
+  .fade-in { animation: fadeIn 0.25s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* BACK BUTTON ON MOBILE */
+  #backBtn {
+    display: none;
+    background: none;
+    border: 1px solid #ddd6ce;
+    color: #3d3228;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    margin-bottom: 16px;
+  }
+  #backBtn:hover { background: #f0eae4; }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- Mobile header -->
+  <div id="header">
+    <span class="brand">經絡穴位<span>查詢系統</span></span>
+    <button id="menuBtn" aria-label="選單">☰</button>
+  </div>
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div class="sidebar-header">
+      <h1>經絡穴位<small>Traditional Chinese Medicine Acupoint Reference</small></h1>
+      <div class="total-count">收錄 14 經脈 · <span id="totalPoints">0</span> 穴</div>
+    </div>
+    <div id="searchWrap">
+      <input type="text" id="searchInput" placeholder="搜尋穴名、代碼、主治功能…" autocomplete="off">
+    </div>
+    <div id="meridianList"></div>
+  </div>
+
+  <!-- Main content -->
+  <div id="main">
+    <button id="backBtn">← 返回列表</button>
+    <div id="emptyState">
+      <div class="icon">☯</div>
+      <h2>請選擇一個穴位</h2>
+      <p>從左側經絡列表中點選穴位，查看詳細位置、功能與主治</p>
+    </div>
+    <div id="detailView"></div>
+  </div>
+</div>
+
+<script>
+// ===================================================================
+// DATA
+// ===================================================================
+const MERIDIANS = [
+  { id: 'lu',  group: '手三陰經', name: '手太陰肺經', code: 'LU',  path: '中焦→大腸→胃→肺→喉嚨→腋下→手臂前內側→拇指', count: 11 },
+  { id: 'pc',  group: '手三陰經', name: '手厥陰心包經', code: 'PC', path: '胸中→心包→上腹→胸→腋下→手臂前內側（中間）→中指', count: 9 },
+  { id: 'ht',  group: '手三陰經', name: '手少陰心經', code: 'HT',  path: '心→小腸→肺→腋下→手臂前內側（後緣）→小指', count: 9 },
+  { id: 'li',  group: '手三陽經', name: '手陽明大腸經', code: 'LI',  path: '食指→手臂前外側→肩→頸→鼻旁', count: 20 },
+  { id: 'te',  group: '手三陽經', name: '手少陽三焦經', code: 'TE', path: '無名指→手臂後外側→肩→頸→耳後→眉梢', count: 23 },
+  { id: 'si',  group: '手三陽經', name: '手太陽小腸經', code: 'SI',  path: '小指→手臂後內側→肩胛→頸→面頰→耳前', count: 19 },
+  { id: 'st',  group: '足三陽經', name: '足陽明胃經', code: 'ST',  path: '鼻旁→面頰→頸→胸→腹→腿前外側→足背→次趾', count: 45 },
+  { id: 'gb',  group: '足三陽經', name: '足少陽膽經', code: 'GB', path: '外眼角→頭側→耳後→肩→脅→腿外側→足背→四趾', count: 44 },
+  { id: 'bl',  group: '足三陽經', name: '足太陽膀胱經', code: 'BL',  path: '內眼角→頭頂→項→背→腿後側→足背→小趾', count: 67 },
+  { id: 'sp',  group: '足三陰經', name: '足太陰脾經', code: 'SP',  path: '足大趾→腿內側（前緣）→腹→胸', count: 21 },
+  { id: 'lr',  group: '足三陰經', name: '足厥陰肝經', code: 'LR', path: '大趾→足背→腿內側（中間）→腹→脅', count: 14 },
+  { id: 'ki',  group: '足三陰經', name: '足少陰腎經', code: 'KI',  path: '足底→腿內側（後緣）→腹（胸）', count: 27 },
+  { id: 'cv',  group: '奇經', name: '任脈', code: 'CV', path: '會陰→腹正中線→胸正中線→頦', count: 24 },
+  { id: 'gv',  group: '奇經', name: '督脈', code: 'GV', path: '尾骨→脊柱正中→頭頂→上顎', count: 28 },
+];
+
+const POINTS = [
+  // ===== 手太陰肺經 (LU) =====
+  { name:'中府', code:'LU1', mid:'lu', loc:'鎖骨下窩外側，前正中線旁開 6 寸', ind:'咳嗽、氣喘、胸痛', cat:'' },
+  { name:'雲門', code:'LU2', mid:'lu', loc:'鎖骨下窩凹陷處，前正中線旁開 6 寸', ind:'咳嗽、胸悶、肩痛', cat:'' },
+  { name:'天府', code:'LU3', mid:'lu', loc:'腋前紋頭下 3 寸，肱二頭肌橈側緣', ind:'鼻出血、氣喘', cat:'' },
+  { name:'俠白', code:'LU4', mid:'lu', loc:'天府下 1 寸，肘橫紋上 5 寸', ind:'咳嗽、氣喘、乾嘔', cat:'' },
+  { name:'尺澤', code:'LU5', mid:'lu', loc:'肘橫紋中，肱二頭肌腱橈側凹陷處', ind:'咳嗽、氣喘、肘臂痛', cat:'合穴' },
+  { name:'孔最', code:'LU6', mid:'lu', loc:'尺澤下 5 寸，太淵上 7 寸', ind:'咯血、咳嗽、咽喉腫痛', cat:'郄穴' },
+  { name:'列缺', code:'LU7', mid:'lu', loc:'橈骨莖突上方，腕橫紋上 1.5 寸', ind:'頭痛、頸項強痛、咳嗽', cat:'絡穴' },
+  { name:'經渠', code:'LU8', mid:'lu', loc:'橈骨莖突內側，腕橫紋上 1 寸', ind:'咳嗽、氣喘、胸痛', cat:'經穴' },
+  { name:'太淵', code:'LU9', mid:'lu', loc:'腕橫紋橈側，橈動脈搏動處', ind:'咳嗽、無脈症、腕痛', cat:'輸穴、原穴' },
+  { name:'魚際', code:'LU10', mid:'lu', loc:'第一掌骨中點橈側，赤白肉際處', ind:'咽喉腫痛、失音、咳嗽', cat:'滎穴' },
+  { name:'少商', code:'LU11', mid:'lu', loc:'拇指橈側，指甲角旁 0.1 寸', ind:'咽喉腫痛、中風昏迷、發熱', cat:'井穴' },
+
+  // ===== 手厥陰心包經 (PC) =====
+  { name:'天池', code:'PC1', mid:'pc', loc:'乳頭外側 1 寸，第四肋間隙', ind:'胸悶、腋下腫痛', cat:'' },
+  { name:'天泉', code:'PC2', mid:'pc', loc:'腋前紋頭下 2 寸，肱二頭肌長短頭之間', ind:'心痛、胸脅脹痛', cat:'' },
+  { name:'曲澤', code:'PC3', mid:'pc', loc:'肘橫紋中，肱二頭肌腱尺側緣', ind:'心痛、心悸、嘔吐', cat:'合穴' },
+  { name:'郄門', code:'PC4', mid:'pc', loc:'腕橫紋上 5 寸，兩筋之間', ind:'心痛、胸痛、咳血', cat:'郄穴' },
+  { name:'間使', code:'PC5', mid:'pc', loc:'腕橫紋上 3 寸，兩筋之間', ind:'心痛、瘧疾、癲癇', cat:'經穴' },
+  { name:'內關', code:'PC6', mid:'pc', loc:'腕橫紋上 2 寸，兩筋之間', ind:'心痛、噁心、嘔吐、失眠', cat:'絡穴' },
+  { name:'大陵', code:'PC7', mid:'pc', loc:'腕橫紋中央，兩筋之間', ind:'心痛、胃痛、腕痛', cat:'輸穴、原穴' },
+  { name:'勞宮', code:'PC8', mid:'pc', loc:'掌心，第二、三掌骨之間偏第三掌骨', ind:'中風昏迷、口瘡、心痛', cat:'滎穴' },
+  { name:'中衝', code:'PC9', mid:'pc', loc:'中指尖端中央', ind:'中風昏迷、中暑、發熱', cat:'井穴' },
+
+  // ===== 手少陰心經 (HT) =====
+  { name:'極泉', code:'HT1', mid:'ht', loc:'腋窩頂點，腋動脈搏動處', ind:'心痛、腋臭、上肢麻痺', cat:'' },
+  { name:'青靈', code:'HT2', mid:'ht', loc:'肘橫紋上 3 寸，肱二頭肌內側溝', ind:'頭痛、脅痛、肩臂痛', cat:'' },
+  { name:'少海', code:'HT3', mid:'ht', loc:'肘橫紋內側端與肱骨內上髁連線中點', ind:'心痛、肘臂痛、瘰癧', cat:'合穴' },
+  { name:'靈道', code:'HT4', mid:'ht', loc:'腕橫紋上 1.5 寸，尺側腕屈肌腱橈側', ind:'心痛、失語、肘臂痛', cat:'經穴' },
+  { name:'通里', code:'HT5', mid:'ht', loc:'腕橫紋上 1 寸，尺側腕屈肌腱橈側', ind:'心悸、失語、腕臂痛', cat:'絡穴' },
+  { name:'陰郄', code:'HT6', mid:'ht', loc:'腕橫紋上 0.5 寸，尺側腕屈肌腱橈側', ind:'心痛、盜汗、吐血', cat:'郄穴' },
+  { name:'神門', code:'HT7', mid:'ht', loc:'腕橫紋尺側端，尺側腕屈肌腱橈側凹陷', ind:'失眠、心悸、癲癇', cat:'輸穴、原穴' },
+  { name:'少府', code:'HT8', mid:'ht', loc:'第四、五掌骨之間，握拳小指尖處', ind:'心悸、胸痛、小便不利', cat:'滎穴' },
+  { name:'少衝', code:'HT9', mid:'ht', loc:'小指橈側，指甲角旁 0.1 寸', ind:'中風昏迷、心悸、發熱', cat:'井穴' },
+
+  // ===== 手陽明大腸經 (LI) =====
+  { name:'商陽', code:'LI1', mid:'li', loc:'食指橈側，指甲角旁 0.1 寸', ind:'咽喉腫痛、發熱、昏迷', cat:'井穴' },
+  { name:'二間', code:'LI2', mid:'li', loc:'第二掌指關節橈側遠端凹陷', ind:'鼻出血、牙痛、咽喉痛', cat:'滎穴' },
+  { name:'三間', code:'LI3', mid:'li', loc:'第二掌指關節橈側近端凹陷', ind:'牙痛、腹瀉、眼痛', cat:'輸穴' },
+  { name:'合谷', code:'LI4', mid:'li', loc:'手背第一、二掌骨之間，平第二掌骨中點', ind:'頭痛、牙痛、發熱、一切痛證', cat:'原穴' },
+  { name:'陽谿', code:'LI5', mid:'li', loc:'腕背橫紋橈側，拇指上翹凹陷處', ind:'頭痛、手腕痛、耳鳴', cat:'經穴' },
+  { name:'偏歷', code:'LI6', mid:'li', loc:'陽谿上 3 寸', ind:'鼻出血、耳鳴、手臂痛', cat:'絡穴' },
+  { name:'溫溜', code:'LI7', mid:'li', loc:'陽谿上 5 寸', ind:'頭痛、咽喉腫痛、腹痛', cat:'郄穴' },
+  { name:'下廉', code:'LI8', mid:'li', loc:'曲池下 4 寸', ind:'頭痛、腹痛、肘臂痛', cat:'' },
+  { name:'上廉', code:'LI9', mid:'li', loc:'曲池下 3 寸', ind:'肩臂痛、腹痛', cat:'' },
+  { name:'手三里', code:'LI10', mid:'li', loc:'曲池下 2 寸', ind:'肩臂痛、腹痛、牙痛', cat:'' },
+  { name:'曲池', code:'LI11', mid:'li', loc:'屈肘，肘橫紋外側端', ind:'發熱、高血壓、肩臂痛', cat:'合穴' },
+  { name:'肘髎', code:'LI12', mid:'li', loc:'曲池外上方 1 寸', ind:'肘臂痛、麻痺', cat:'' },
+  { name:'手五里', code:'LI13', mid:'li', loc:'曲池上 3 寸', ind:'肘臂痛、瘰癧', cat:'' },
+  { name:'臂臑', code:'LI14', mid:'li', loc:'三角肌下端，曲池上 7 寸', ind:'肩臂痛、眼疾', cat:'' },
+  { name:'肩髃', code:'LI15', mid:'li', loc:'肩峰前下方，舉臂凹陷處', ind:'肩周炎、上肢不遂', cat:'' },
+  { name:'巨骨', code:'LI16', mid:'li', loc:'鎖骨肩峰端與肩胛岡之間凹陷', ind:'肩痛、臂痛', cat:'' },
+  { name:'天鼎', code:'LI17', mid:'li', loc:'胸鎖乳突肌後緣，扶突下 1 寸', ind:'咽喉腫痛、失音', cat:'' },
+  { name:'扶突', code:'LI18', mid:'li', loc:'喉結旁開 3 寸，胸鎖乳突肌中', ind:'咳嗽、氣喘、甲狀腺腫', cat:'' },
+  { name:'口禾髎', code:'LI19', mid:'li', loc:'鼻孔外緣直下，人中旁 0.5 寸', ind:'鼻塞、鼻出血', cat:'' },
+  { name:'迎香', code:'LI20', mid:'li', loc:'鼻翼外緣中點，鼻唇溝中', ind:'鼻塞、鼻炎、面癱', cat:'' },
+
+  // ===== 手少陽三焦經 (TE) =====
+  { name:'關衝', code:'TE1', mid:'te', loc:'無名指尺側，指甲角旁 0.1 寸', ind:'發熱、咽喉腫痛、昏迷', cat:'井穴' },
+  { name:'液門', code:'TE2', mid:'te', loc:'第四、五指掌指關節間凹陷', ind:'頭痛、耳鳴、咽喉痛', cat:'滎穴' },
+  { name:'中渚', code:'TE3', mid:'te', loc:'手背第四、五掌骨間，掌指關節後', ind:'耳鳴、耳聾、頭痛', cat:'輸穴' },
+  { name:'陽池', code:'TE4', mid:'te', loc:'腕背橫紋中，伸指肌腱尺側凹陷', ind:'耳鳴、手腕痛、糖尿病', cat:'原穴' },
+  { name:'外關', code:'TE5', mid:'te', loc:'腕背橫紋上 2 寸，兩骨之間', ind:'發熱、頭痛、耳鳴、脅痛', cat:'絡穴' },
+  { name:'支溝', code:'TE6', mid:'te', loc:'腕背橫紋上 3 寸，兩骨之間', ind:'耳鳴、便秘、脅痛', cat:'經穴' },
+  { name:'會宗', code:'TE7', mid:'te', loc:'支溝尺側約 1 寸', ind:'耳鳴、癲癇', cat:'郄穴' },
+  { name:'三陽絡', code:'TE8', mid:'te', loc:'腕背橫紋上 4 寸，兩骨之間', ind:'耳聾、失語、手臂痛', cat:'' },
+  { name:'四瀆', code:'TE9', mid:'te', loc:'肘尖下 5 寸，兩骨之間', ind:'耳聾、咽喉痛、手臂痛', cat:'' },
+  { name:'天井', code:'TE10', mid:'te', loc:'屈肘，肘尖直上 1 寸凹陷', ind:'偏頭痛、頸項痛、瘰癧', cat:'合穴' },
+  { name:'清冷淵', code:'TE11', mid:'te', loc:'天井上 1 寸', ind:'頭痛、肩臂痛', cat:'' },
+  { name:'消濼', code:'TE12', mid:'te', loc:'清冷淵上 3 寸', ind:'頭痛、牙痛、肩背痛', cat:'' },
+  { name:'臑會', code:'TE13', mid:'te', loc:'肩髎下 3 寸，三角肌後緣', ind:'肩臂痛、甲狀腺腫', cat:'' },
+  { name:'肩髎', code:'TE14', mid:'te', loc:'肩峰後下方，肩髃後 1 寸', ind:'肩周炎、肩臂痛', cat:'' },
+  { name:'天髎', code:'TE15', mid:'te', loc:'肩胛骨上角內上方', ind:'肩背痛、頸項痛', cat:'' },
+  { name:'天牖', code:'TE16', mid:'te', loc:'乳突後下方，胸鎖乳突肌後緣', ind:'頭痛、耳鳴、頸項痛', cat:'' },
+  { name:'翳風', code:'TE17', mid:'te', loc:'耳垂後方凹陷中', ind:'耳鳴、面癱、牙痛', cat:'' },
+  { name:'瘈脈', code:'TE18', mid:'te', loc:'翳風上 1 寸，耳後青筋處', ind:'頭痛、耳鳴、癲癇', cat:'' },
+  { name:'顱息', code:'TE19', mid:'te', loc:'瘈脈上 1 寸', ind:'耳鳴、頭痛', cat:'' },
+  { name:'角孫', code:'TE20', mid:'te', loc:'耳尖正上方入髮際處', ind:'偏頭痛、眼痛', cat:'' },
+  { name:'耳門', code:'TE21', mid:'te', loc:'耳屏上切跡前，張口凹陷', ind:'耳鳴、耳聾、牙痛', cat:'' },
+  { name:'耳和髎', code:'TE22', mid:'te', loc:'鬢髮後緣，耳廓根前', ind:'頭痛、面癱', cat:'' },
+  { name:'絲竹空', code:'TE23', mid:'te', loc:'眉梢外端凹陷處', ind:'頭痛、眼疾、面癱', cat:'' },
+
+  // ===== 手太陽小腸經 (SI) =====
+  { name:'少澤', code:'SI1', mid:'si', loc:'小指尺側，指甲角旁 0.1 寸', ind:'發熱、乳少、昏迷', cat:'井穴' },
+  { name:'前谷', code:'SI2', mid:'si', loc:'第五掌指關節尺側遠端凹陷', ind:'頭痛、耳鳴、發熱', cat:'滎穴' },
+  { name:'後谿', code:'SI3', mid:'si', loc:'第五掌指關節尺側近端凹陷', ind:'頭項強痛、腰痛、耳鳴', cat:'輸穴' },
+  { name:'腕骨', code:'SI4', mid:'si', loc:'第五掌骨基底與三角骨之間凹陷', ind:'頭痛、耳鳴、腕痛', cat:'原穴' },
+  { name:'陽谷', code:'SI5', mid:'si', loc:'腕背橫紋尺側，尺骨莖突前凹陷', ind:'頭痛、耳鳴、手腕痛', cat:'經穴' },
+  { name:'養老', code:'SI6', mid:'si', loc:'尺骨莖突橈側骨縫中', ind:'視物模糊、肩背痛', cat:'郄穴' },
+  { name:'支正', code:'SI7', mid:'si', loc:'陽谷上 5 寸', ind:'頭痛、肘臂痛', cat:'絡穴' },
+  { name:'小海', code:'SI8', mid:'si', loc:'肘尖與肱骨內上髁之間凹陷', ind:'肘臂痛、癲癇', cat:'合穴' },
+  { name:'肩貞', code:'SI9', mid:'si', loc:'腋後紋頭上 1 寸', ind:'肩痛、上肢不遂', cat:'' },
+  { name:'臑俞', code:'SI10', mid:'si', loc:'肩貞直上，肩胛岡下緣凹陷', ind:'肩痛、頸項痛', cat:'' },
+  { name:'天宗', code:'SI11', mid:'si', loc:'肩胛岡下窩中央', ind:'肩背痛、胸脅脹痛', cat:'' },
+  { name:'秉風', code:'SI12', mid:'si', loc:'肩胛岡上窩中點', ind:'肩痛、上肢痠麻', cat:'' },
+  { name:'曲垣', code:'SI13', mid:'si', loc:'肩胛岡內側端上緣', ind:'肩背痛', cat:'' },
+  { name:'肩外俞', code:'SI14', mid:'si', loc:'第一胸椎棘突下旁開 3 寸', ind:'肩背痛、頸項強痛', cat:'' },
+  { name:'肩中俞', code:'SI15', mid:'si', loc:'第七頸椎棘突下旁開 2 寸', ind:'肩背痛、咳嗽', cat:'' },
+  { name:'天窗', code:'SI16', mid:'si', loc:'胸鎖乳突肌後緣，扶突後方', ind:'頸項強痛、耳鳴', cat:'' },
+  { name:'天容', code:'SI17', mid:'si', loc:'下頜角後方，胸鎖乳突肌前緣凹陷', ind:'咽喉腫痛、耳鳴', cat:'' },
+  { name:'顴髎', code:'SI18', mid:'si', loc:'顴骨下緣，外眼角直下凹陷', ind:'面癱、牙痛、眼瞼跳動', cat:'' },
+  { name:'聽宮', code:'SI19', mid:'si', loc:'耳屏前，張口凹陷', ind:'耳鳴、耳聾、牙痛', cat:'' },
+
+  // ===== 足陽明胃經 (ST) =====
+  { name:'承泣', code:'ST1', mid:'st', loc:'瞳孔直下，眼眶下緣', ind:'眼疾、面癱', cat:'' },
+  { name:'四白', code:'ST2', mid:'st', loc:'瞳孔直下，眶下孔凹陷', ind:'面癱、眼疾、頭痛', cat:'' },
+  { name:'巨髎', code:'ST3', mid:'st', loc:'瞳孔直下，鼻翼旁 1 寸', ind:'面癱、鼻出血', cat:'' },
+  { name:'地倉', code:'ST4', mid:'st', loc:'瞳孔直下，口角外側 0.4 寸', ind:'面癱、流涎', cat:'' },
+  { name:'大迎', code:'ST5', mid:'st', loc:'下頜角前 1.3 寸凹陷', ind:'面腫、牙痛', cat:'' },
+  { name:'頰車', code:'ST6', mid:'st', loc:'下頜角前上方，咬牙肌肉隆起', ind:'牙痛、面癱、口噤', cat:'' },
+  { name:'下關', code:'ST7', mid:'st', loc:'顴弓下緣凹陷，張口有孔', ind:'牙痛、耳鳴、面癱', cat:'' },
+  { name:'頭維', code:'ST8', mid:'st', loc:'額角入髮際 0.5 寸', ind:'頭痛、眼疾', cat:'' },
+  { name:'人迎', code:'ST9', mid:'st', loc:'喉結旁開 1.5 寸，頸總動脈搏動處', ind:'高血壓、氣喘', cat:'' },
+  { name:'水突', code:'ST10', mid:'st', loc:'人迎下 1 寸，胸鎖乳突肌前緣', ind:'咳嗽、氣喘', cat:'' },
+  { name:'氣舍', code:'ST11', mid:'st', loc:'鎖骨內側端上緣', ind:'咽喉腫痛、甲狀腺腫', cat:'' },
+  { name:'缺盆', code:'ST12', mid:'st', loc:'鎖骨中點上緣凹陷', ind:'咳嗽、胸痛', cat:'' },
+  { name:'氣戶', code:'ST13', mid:'st', loc:'鎖骨中點下緣，前正中線旁開 4 寸', ind:'胸悶、氣喘', cat:'' },
+  { name:'庫房', code:'ST14', mid:'st', loc:'第一肋間隙，前正中線旁開 4 寸', ind:'咳嗽、胸脅脹痛', cat:'' },
+  { name:'屋翳', code:'ST15', mid:'st', loc:'第二肋間隙，前正中線旁開 4 寸', ind:'咳嗽、乳癰', cat:'' },
+  { name:'膺窗', code:'ST16', mid:'st', loc:'第三肋間隙，前正中線旁開 4 寸', ind:'咳嗽、胸痛、乳癰', cat:'' },
+  { name:'乳中', code:'ST17', mid:'st', loc:'乳頭中央', ind:'僅作定位標誌', cat:'' },
+  { name:'乳根', code:'ST18', mid:'st', loc:'第五肋間隙，乳頭直下', ind:'乳汁不足、胸痛', cat:'' },
+  { name:'不容', code:'ST19', mid:'st', loc:'臍上 6 寸，前正中線旁開 2 寸', ind:'腹脹、嘔吐', cat:'' },
+  { name:'承滿', code:'ST20', mid:'st', loc:'臍上 5 寸，前正中線旁開 2 寸', ind:'胃痛、腹脹', cat:'' },
+  { name:'梁門', code:'ST21', mid:'st', loc:'臍上 4 寸，前正中線旁開 2 寸', ind:'胃痛、食慾不振', cat:'' },
+  { name:'關門', code:'ST22', mid:'st', loc:'臍上 3 寸，前正中線旁開 2 寸', ind:'腹脹、水腫', cat:'' },
+  { name:'太乙', code:'ST23', mid:'st', loc:'臍上 2 寸，前正中線旁開 2 寸', ind:'胃痛、癲癇', cat:'' },
+  { name:'滑肉門', code:'ST24', mid:'st', loc:'臍上 1 寸，前正中線旁開 2 寸', ind:'胃痛、嘔吐、癲癇', cat:'' },
+  { name:'天樞', code:'ST25', mid:'st', loc:'臍旁開 2 寸', ind:'腹脹、腹瀉、便秘', cat:'大腸募穴' },
+  { name:'外陵', code:'ST26', mid:'st', loc:'臍下 1 寸，前正中線旁開 2 寸', ind:'腹痛、經痛', cat:'' },
+  { name:'大巨', code:'ST27', mid:'st', loc:'臍下 2 寸，前正中線旁開 2 寸', ind:'腹痛、小便不利', cat:'' },
+  { name:'水道', code:'ST28', mid:'st', loc:'臍下 3 寸，前正中線旁開 2 寸', ind:'水腫、小便不利', cat:'' },
+  { name:'歸來', code:'ST29', mid:'st', loc:'臍下 4 寸，前正中線旁開 2 寸', ind:'經痛、白帶、疝氣', cat:'' },
+  { name:'氣衝', code:'ST30', mid:'st', loc:'臍下 5 寸，前正中線旁開 2 寸', ind:'腹痛、陽痿', cat:'' },
+  { name:'髀關', code:'ST31', mid:'st', loc:'髂前上棘與髕骨外緣連線上，平臀橫紋', ind:'下肢癱瘓、膝痛', cat:'' },
+  { name:'伏兔', code:'ST32', mid:'st', loc:'髕骨外上緣上 6 寸', ind:'腰痛、膝痛、下肢麻痺', cat:'' },
+  { name:'陰市', code:'ST33', mid:'st', loc:'髕骨外上緣上 3 寸', ind:'膝痛、下肢不遂', cat:'' },
+  { name:'梁丘', code:'ST34', mid:'st', loc:'髕骨外上緣上 2 寸', ind:'胃痛、膝痛', cat:'郄穴' },
+  { name:'犢鼻', code:'ST35', mid:'st', loc:'髕骨下緣外側凹陷', ind:'膝關節痛', cat:'' },
+  { name:'足三里', code:'ST36', mid:'st', loc:'犢鼻下 3 寸，脛骨前嵴外一橫指', ind:'胃痛、腹脹、保健要穴', cat:'合穴' },
+  { name:'上巨虛', code:'ST37', mid:'st', loc:'足三里下 3 寸', ind:'腹痛、腹瀉', cat:'大腸下合穴' },
+  { name:'條口', code:'ST38', mid:'st', loc:'上巨虛下 2 寸', ind:'肩痛、下肢麻痺', cat:'' },
+  { name:'下巨虛', code:'ST39', mid:'st', loc:'上巨虛下 3 寸', ind:'腹痛、下肢痛', cat:'小腸下合穴' },
+  { name:'豐隆', code:'ST40', mid:'st', loc:'外踝尖上 8 寸，脛骨前嵴外二橫指', ind:'痰多、頭痛、眩暈', cat:'絡穴' },
+  { name:'解谿', code:'ST41', mid:'st', loc:'踝關節前橫紋中', ind:'頭痛、足踝痛', cat:'經穴' },
+  { name:'衝陽', code:'ST42', mid:'st', loc:'足背最高點，動脈搏動處', ind:'胃痛、足背痛', cat:'原穴' },
+  { name:'陷谷', code:'ST43', mid:'st', loc:'第二、三蹠骨間，蹠趾關節後', ind:'面目浮腫、腹痛', cat:'輸穴' },
+  { name:'內庭', code:'ST44', mid:'st', loc:'第二、三趾蹼緣後方', ind:'牙痛、咽喉痛、胃痛', cat:'滎穴' },
+  { name:'厲兌', code:'ST45', mid:'st', loc:'第二趾外側，指甲角旁 0.1 寸', ind:'發熱、牙痛、失眠', cat:'井穴' },
+
+  // ===== 足少陽膽經 (GB) =====
+  { name:'瞳子髎', code:'GB1', mid:'gb', loc:'外眼角外側 0.5 寸', ind:'頭痛、眼疾', cat:'' },
+  { name:'聽會', code:'GB2', mid:'gb', loc:'耳屏間切跡前，張口凹陷', ind:'耳鳴、耳聾、牙痛', cat:'' },
+  { name:'上關', code:'GB3', mid:'gb', loc:'顴弓上緣，下關上方', ind:'耳鳴、面癱、牙痛', cat:'' },
+  { name:'頷厭', code:'GB4', mid:'gb', loc:'頭維下 1 寸，鬢髮中', ind:'偏頭痛、眩暈', cat:'' },
+  { name:'懸顱', code:'GB5', mid:'gb', loc:'頷厭下 1 寸，鬢髮中', ind:'偏頭痛', cat:'' },
+  { name:'懸釐', code:'GB6', mid:'gb', loc:'懸顱下 1 寸，鬢髮中', ind:'偏頭痛、面腫', cat:'' },
+  { name:'曲鬢', code:'GB7', mid:'gb', loc:'耳前鬢髮後緣直上，角孫前 1 寸', ind:'頭痛、牙痛', cat:'' },
+  { name:'率谷', code:'GB8', mid:'gb', loc:'耳尖直上入髮際 1.5 寸', ind:'偏頭痛、眩暈', cat:'' },
+  { name:'天衝', code:'GB9', mid:'gb', loc:'率谷後 0.5 寸', ind:'頭痛、癲癇', cat:'' },
+  { name:'浮白', code:'GB10', mid:'gb', loc:'天衝後 1 寸', ind:'耳鳴、頭痛', cat:'' },
+  { name:'竅陰', code:'GB11', mid:'gb', loc:'浮白下 1 寸', ind:'耳鳴、頭痛', cat:'' },
+  { name:'完骨', code:'GB12', mid:'gb', loc:'乳突後下方凹陷', ind:'頭痛、面癱', cat:'' },
+  { name:'本神', code:'GB13', mid:'gb', loc:'神庭旁開 3 寸', ind:'頭痛、癲癇', cat:'' },
+  { name:'陽白', code:'GB14', mid:'gb', loc:'瞳孔直上，眉上 1 寸', ind:'頭痛、眼疾、面癱', cat:'' },
+  { name:'頭臨泣', code:'GB15', mid:'gb', loc:'陽白直上入髮際 0.5 寸', ind:'頭痛、鼻塞', cat:'' },
+  { name:'目窗', code:'GB16', mid:'gb', loc:'頭臨泣上 1.5 寸', ind:'頭痛、眼疾', cat:'' },
+  { name:'正營', code:'GB17', mid:'gb', loc:'目窗上 1.5 寸', ind:'頭痛、眩暈', cat:'' },
+  { name:'承靈', code:'GB18', mid:'gb', loc:'正營後 1.5 寸', ind:'頭痛、鼻塞', cat:'' },
+  { name:'腦空', code:'GB19', mid:'gb', loc:'風池直上 1.5 寸', ind:'頭痛、頸項強痛', cat:'' },
+  { name:'風池', code:'GB20', mid:'gb', loc:'胸鎖乳突肌與斜方肌上端之間凹陷', ind:'感冒、頭痛、眩暈、頸痛', cat:'' },
+  { name:'肩井', code:'GB21', mid:'gb', loc:'大椎與肩峰連線中點', ind:'肩背痛、頸痛', cat:'' },
+  { name:'淵腋', code:'GB22', mid:'gb', loc:'腋中線，第四肋間隙', ind:'胸脅脹痛', cat:'' },
+  { name:'輒筋', code:'GB23', mid:'gb', loc:'淵腋前 1 寸，第四肋間隙', ind:'胸痛、氣喘', cat:'' },
+  { name:'日月', code:'GB24', mid:'gb', loc:'乳頭直下，第七肋間隙', ind:'脅痛、嘔吐', cat:'膽募穴' },
+  { name:'京門', code:'GB25', mid:'gb', loc:'第十二肋骨遊離端下緣', ind:'腰痛、腹脹', cat:'腎募穴' },
+  { name:'帶脈', code:'GB26', mid:'gb', loc:'第十一肋骨遊離端直下平臍', ind:'白帶、腰脅痛', cat:'' },
+  { name:'五樞', code:'GB27', mid:'gb', loc:'髂前上棘前內方，帶脈下 3 寸', ind:'腰痛、疝氣', cat:'' },
+  { name:'維道', code:'GB28', mid:'gb', loc:'五樞前下 0.5 寸', ind:'腰痛、白帶', cat:'' },
+  { name:'居髎', code:'GB29', mid:'gb', loc:'髂前上棘與大轉子連線中點', ind:'腰痛、下肢痛', cat:'' },
+  { name:'環跳', code:'GB30', mid:'gb', loc:'大轉子與骶管裂孔連線外 1/3 處', ind:'腰痛、坐骨神經痛', cat:'' },
+  { name:'風市', code:'GB31', mid:'gb', loc:'大腿外側正中，膝上 7 寸', ind:'下肢麻痺、皮膚瘙癢', cat:'' },
+  { name:'中瀆', code:'GB32', mid:'gb', loc:'風市下 2 寸', ind:'下肢麻痺', cat:'' },
+  { name:'膝陽關', code:'GB33', mid:'gb', loc:'膝外側，股骨外上髁上方凹陷', ind:'膝關節痛', cat:'' },
+  { name:'陽陵泉', code:'GB34', mid:'gb', loc:'腓骨小頭前下方凹陷', ind:'脅痛、膝痛、中風', cat:'合穴、筋會' },
+  { name:'陽交', code:'GB35', mid:'gb', loc:'外踝尖上 7 寸，腓骨後緣', ind:'胸脅痛、下肢痛', cat:'郄穴' },
+  { name:'外丘', code:'GB36', mid:'gb', loc:'外踝尖上 7 寸，腓骨前緣', ind:'頭痛、下肢麻痺', cat:'' },
+  { name:'光明', code:'GB37', mid:'gb', loc:'外踝尖上 5 寸，腓骨前緣', ind:'眼疾、下肢麻痺', cat:'絡穴' },
+  { name:'陽輔', code:'GB38', mid:'gb', loc:'外踝尖上 4 寸，腓骨前緣', ind:'偏頭痛、下肢痛', cat:'經穴' },
+  { name:'懸鐘', code:'GB39', mid:'gb', loc:'外踝尖上 3 寸，腓骨前緣', ind:'中風、頸項強痛、下肢痛', cat:'髓會' },
+  { name:'丘墟', code:'GB40', mid:'gb', loc:'外踝前下方凹陷', ind:'胸脅痛、足踝痛', cat:'原穴' },
+  { name:'足臨泣', code:'GB41', mid:'gb', loc:'第四、五蹠骨間，蹠趾關節後', ind:'頭痛、耳鳴、脅痛', cat:'輸穴' },
+  { name:'地五會', code:'GB42', mid:'gb', loc:'第四、五蹠骨間，蹠趾關節後 0.5 寸', ind:'耳鳴、脅痛', cat:'' },
+  { name:'俠谿', code:'GB43', mid:'gb', loc:'第四、五趾蹼緣後方', ind:'耳鳴、頭痛', cat:'滎穴' },
+  { name:'足竅陰', code:'GB44', mid:'gb', loc:'第四趾外側，指甲角旁 0.1 寸', ind:'頭痛、耳鳴、失眠', cat:'井穴' },
+
+  // ===== 足太陽膀胱經 (BL) =====
+  { name:'睛明', code:'BL1', mid:'bl', loc:'內眼角上方 0.1 寸，眶上緣', ind:'一切眼疾', cat:'' },
+  { name:'攢竹', code:'BL2', mid:'bl', loc:'眉頭凹陷中', ind:'頭痛、眼疾、面癱', cat:'' },
+  { name:'眉衝', code:'BL3', mid:'bl', loc:'攢竹直上入髮際 0.5 寸', ind:'頭痛、眩暈', cat:'' },
+  { name:'曲差', code:'BL4', mid:'bl', loc:'神庭旁開 1.5 寸', ind:'頭痛、鼻塞', cat:'' },
+  { name:'五處', code:'BL5', mid:'bl', loc:'曲差上 1 寸', ind:'頭痛、癲癇', cat:'' },
+  { name:'承光', code:'BL6', mid:'bl', loc:'五處上 1.5 寸', ind:'頭痛、鼻塞', cat:'' },
+  { name:'通天', code:'BL7', mid:'bl', loc:'承光後 1.5 寸', ind:'頭痛、鼻塞', cat:'' },
+  { name:'絡卻', code:'BL8', mid:'bl', loc:'通天後 1.5 寸', ind:'頭痛、耳鳴', cat:'' },
+  { name:'玉枕', code:'BL9', mid:'bl', loc:'腦戶（督脈）旁開 1.3 寸', ind:'頭痛、眼疾', cat:'' },
+  { name:'天柱', code:'BL10', mid:'bl', loc:'啞門（督脈）旁開 1.3 寸', ind:'頭痛、頸項強痛', cat:'' },
+  { name:'大杼', code:'BL11', mid:'bl', loc:'第一胸椎棘突下旁開 1.5 寸', ind:'咳嗽、頭痛', cat:'骨會' },
+  { name:'風門', code:'BL12', mid:'bl', loc:'第二胸椎棘突下旁開 1.5 寸', ind:'感冒、咳嗽、項強', cat:'' },
+  { name:'肺俞', code:'BL13', mid:'bl', loc:'第三胸椎棘突下旁開 1.5 寸', ind:'咳嗽、氣喘', cat:'肺背俞' },
+  { name:'厥陰俞', code:'BL14', mid:'bl', loc:'第四胸椎棘突下旁開 1.5 寸', ind:'心痛、胸悶', cat:'心包背俞' },
+  { name:'心俞', code:'BL15', mid:'bl', loc:'第五胸椎棘突下旁開 1.5 寸', ind:'心痛、失眠、健忘', cat:'心背俞' },
+  { name:'督俞', code:'BL16', mid:'bl', loc:'第六胸椎棘突下旁開 1.5 寸', ind:'心痛、腹痛', cat:'' },
+  { name:'膈俞', code:'BL17', mid:'bl', loc:'第七胸椎棘突下旁開 1.5 寸', ind:'嘔吐、瘀血', cat:'血會' },
+  { name:'肝俞', code:'BL18', mid:'bl', loc:'第九胸椎棘突下旁開 1.5 寸', ind:'脅痛、眼疾', cat:'肝背俞' },
+  { name:'膽俞', code:'BL19', mid:'bl', loc:'第十胸椎棘突下旁開 1.5 寸', ind:'脅痛、膽囊炎', cat:'膽背俞' },
+  { name:'脾俞', code:'BL20', mid:'bl', loc:'第十一胸椎棘突下旁開 1.5 寸', ind:'腹脹、消化不良', cat:'脾背俞' },
+  { name:'胃俞', code:'BL21', mid:'bl', loc:'第十二胸椎棘突下旁開 1.5 寸', ind:'胃痛、腹脹', cat:'胃背俞' },
+  { name:'三焦俞', code:'BL22', mid:'bl', loc:'第一腰椎棘突下旁開 1.5 寸', ind:'腹脹、水腫', cat:'三焦背俞' },
+  { name:'腎俞', code:'BL23', mid:'bl', loc:'第二腰椎棘突下旁開 1.5 寸', ind:'腰痛、陽痿、耳鳴', cat:'腎背俞' },
+  { name:'氣海俞', code:'BL24', mid:'bl', loc:'第三腰椎棘突下旁開 1.5 寸', ind:'腰痛、氣喘', cat:'' },
+  { name:'大腸俞', code:'BL25', mid:'bl', loc:'第四腰椎棘突下旁開 1.5 寸', ind:'腰痛、腹瀉', cat:'大腸背俞' },
+  { name:'關元俞', code:'BL26', mid:'bl', loc:'第五腰椎棘突下旁開 1.5 寸', ind:'腰痛、小便不利', cat:'' },
+  { name:'小腸俞', code:'BL27', mid:'bl', loc:'第一骶後孔旁開 1.5 寸', ind:'腰痛、遺尿', cat:'小腸背俞' },
+  { name:'膀胱俞', code:'BL28', mid:'bl', loc:'第二骶後孔旁開 1.5 寸', ind:'小便不利、腰痛', cat:'膀胱背俞' },
+  { name:'中膂俞', code:'BL29', mid:'bl', loc:'第三骶後孔旁開 1.5 寸', ind:'腹瀉、腰痛', cat:'' },
+  { name:'白環俞', code:'BL30', mid:'bl', loc:'第四骶後孔旁開 1.5 寸', ind:'白帶、遺精、腰痛', cat:'' },
+  { name:'上髎', code:'BL31', mid:'bl', loc:'第一骶後孔中', ind:'腰痛、月經不調', cat:'' },
+  { name:'次髎', code:'BL32', mid:'bl', loc:'第二骶後孔中', ind:'腰痛、月經不調、帶下', cat:'' },
+  { name:'中髎', code:'BL33', mid:'bl', loc:'第三骶後孔中', ind:'腰痛、小便不利', cat:'' },
+  { name:'下髎', code:'BL34', mid:'bl', loc:'第四骶後孔中', ind:'腰痛、腹痛', cat:'' },
+  { name:'會陽', code:'BL35', mid:'bl', loc:'尾骨下端旁開 0.5 寸', ind:'痔瘡、腹瀉', cat:'' },
+  { name:'承扶', code:'BL36', mid:'bl', loc:'臀橫紋中點', ind:'腰痛、下肢癱瘓', cat:'' },
+  { name:'殷門', code:'BL37', mid:'bl', loc:'承扶下 6 寸', ind:'腰痛、下肢痛', cat:'' },
+  { name:'浮郄', code:'BL38', mid:'bl', loc:'委陽上 1 寸', ind:'膝痛、麻痺', cat:'' },
+  { name:'委陽', code:'BL39', mid:'bl', loc:'膕橫紋外側', ind:'小便不利、膝痛', cat:'三焦下合穴' },
+  { name:'委中', code:'BL40', mid:'bl', loc:'膕橫紋中點', ind:'腰痛、中暑、下肢痛', cat:'合穴' },
+  { name:'附分', code:'BL41', mid:'bl', loc:'第二胸椎棘突下旁開 3 寸', ind:'肩背痛、頸項強痛', cat:'' },
+  { name:'魄戶', code:'BL42', mid:'bl', loc:'第三胸椎棘突下旁開 3 寸', ind:'咳嗽、氣喘', cat:'' },
+  { name:'膏肓', code:'BL43', mid:'bl', loc:'第四胸椎棘突下旁開 3 寸', ind:'虛勞、咳嗽、保健要穴', cat:'' },
+  { name:'神堂', code:'BL44', mid:'bl', loc:'第五胸椎棘突下旁開 3 寸', ind:'心痛、氣喘', cat:'' },
+  { name:'譩譆', code:'BL45', mid:'bl', loc:'第六胸椎棘突下旁開 3 寸', ind:'咳嗽、瘧疾', cat:'' },
+  { name:'膈關', code:'BL46', mid:'bl', loc:'第七胸椎棘突下旁開 3 寸', ind:'胸痛、嘔吐', cat:'' },
+  { name:'魂門', code:'BL47', mid:'bl', loc:'第九胸椎棘突下旁開 3 寸', ind:'胸脅痛、消化不良', cat:'' },
+  { name:'陽綱', code:'BL48', mid:'bl', loc:'第十胸椎棘突下旁開 3 寸', ind:'腹脹、黃疸', cat:'' },
+  { name:'意舍', code:'BL49', mid:'bl', loc:'第十一胸椎棘突下旁開 3 寸', ind:'腹脹、嘔吐', cat:'' },
+  { name:'胃倉', code:'BL50', mid:'bl', loc:'第十二胸椎棘突下旁開 3 寸', ind:'胃痛、腹脹', cat:'' },
+  { name:'肓門', code:'BL51', mid:'bl', loc:'第一腰椎棘突下旁開 3 寸', ind:'腹痛、便秘', cat:'' },
+  { name:'志室', code:'BL52', mid:'bl', loc:'第二腰椎棘突下旁開 3 寸', ind:'遺精、腰痛、小便不利', cat:'' },
+  { name:'胞肓', code:'BL53', mid:'bl', loc:'第二骶後孔旁開 3 寸', ind:'小便不利、腰痛', cat:'' },
+  { name:'秩邊', code:'BL54', mid:'bl', loc:'第四骶後孔旁開 3 寸', ind:'腰痛、坐骨神經痛', cat:'' },
+  { name:'合陽', code:'BL55', mid:'bl', loc:'委中下 2 寸', ind:'腰痛、下肢痛', cat:'' },
+  { name:'承筋', code:'BL56', mid:'bl', loc:'合陽下 3 寸，腓腸肌中', ind:'小腿痙攣、腰痛', cat:'' },
+  { name:'承山', code:'BL57', mid:'bl', loc:'小腿後正中，腓腸肌肌腹下', ind:'小腿痙攣、痔瘡、腰痛', cat:'' },
+  { name:'飛揚', code:'BL58', mid:'bl', loc:'崑崙上 7 寸', ind:'頭痛、腰痛', cat:'絡穴' },
+  { name:'跗陽', code:'BL59', mid:'bl', loc:'崑崙上 3 寸', ind:'頭痛、腰腿痛', cat:'郄穴' },
+  { name:'崑崙', code:'BL60', mid:'bl', loc:'外踝尖與跟腱之間凹陷', ind:'頭痛、項強、腰痛、難產', cat:'經穴' },
+  { name:'僕參', code:'BL61', mid:'bl', loc:'崑崙下 1.5 寸', ind:'足跟痛、下肢無力', cat:'' },
+  { name:'申脈', code:'BL62', mid:'bl', loc:'外踝尖直下凹陷', ind:'頭痛、失眠、癲癇', cat:'' },
+  { name:'金門', code:'BL63', mid:'bl', loc:'申脈前下方', ind:'頭痛、癲癇', cat:'郄穴' },
+  { name:'京骨', code:'BL64', mid:'bl', loc:'第五蹠骨粗隆下凹陷', ind:'頭痛、腰痛', cat:'原穴' },
+  { name:'束骨', code:'BL65', mid:'bl', loc:'第五蹠趾關節後外側', ind:'頭痛、項強', cat:'輸穴' },
+  { name:'足通谷', code:'BL66', mid:'bl', loc:'第五蹠趾關節前外側', ind:'頭痛、鼻出血', cat:'滎穴' },
+  { name:'至陰', code:'BL67', mid:'bl', loc:'小趾外側，指甲角旁 0.1 寸', ind:'頭痛、胎位不正、難產', cat:'井穴' },
+
+  // ===== 足太陰脾經 (SP) =====
+  { name:'隱白', code:'SP1', mid:'sp', loc:'大趾內側，指甲角旁 0.1 寸', ind:'崩漏、失眠、腹痛', cat:'井穴' },
+  { name:'大都', code:'SP2', mid:'sp', loc:'大趾內側，蹠趾關節前凹陷', ind:'腹脹、胃痛', cat:'滎穴' },
+  { name:'太白', code:'SP3', mid:'sp', loc:'第一蹠骨內側後下方凹陷', ind:'胃痛、腹脹、泄瀉', cat:'輸穴、原穴' },
+  { name:'公孫', code:'SP4', mid:'sp', loc:'第一蹠骨基底內側前下方', ind:'胃痛、腹脹、心煩', cat:'絡穴' },
+  { name:'商丘', code:'SP5', mid:'sp', loc:'內踝前下方凹陷', ind:'腹脹、足踝痛', cat:'經穴' },
+  { name:'三陰交', code:'SP6', mid:'sp', loc:'內踝尖上 3 寸，脛骨內側緣後方', ind:'月經不調、失眠、消化系統', cat:'要穴' },
+  { name:'漏谷', code:'SP7', mid:'sp', loc:'三陰交上 3 寸', ind:'腹脹、下肢麻痺', cat:'' },
+  { name:'地機', code:'SP8', mid:'sp', loc:'陰陵泉下 3 寸', ind:'月經不調、腹痛', cat:'郄穴' },
+  { name:'陰陵泉', code:'SP9', mid:'sp', loc:'脛骨內側髁後下方凹陷', ind:'水腫、小便不利、膝痛', cat:'合穴' },
+  { name:'血海', code:'SP10', mid:'sp', loc:'髕骨內上緣上 2 寸', ind:'月經不調、皮膚瘙癢', cat:'' },
+  { name:'箕門', code:'SP11', mid:'sp', loc:'血海上 6 寸', ind:'小便不利、腹股溝痛', cat:'' },
+  { name:'衝門', code:'SP12', mid:'sp', loc:'腹股溝外端，氣衝外 3.5 寸', ind:'腹痛、疝氣', cat:'' },
+  { name:'府舍', code:'SP13', mid:'sp', loc:'衝門上 0.7 寸', ind:'腹痛、疝氣', cat:'' },
+  { name:'腹結', code:'SP14', mid:'sp', loc:'臍下 1.3 寸，前正中線旁開 4 寸', ind:'腹痛、腹瀉', cat:'' },
+  { name:'大橫', code:'SP15', mid:'sp', loc:'臍旁開 4 寸', ind:'腹瀉、便秘', cat:'' },
+  { name:'腹哀', code:'SP16', mid:'sp', loc:'臍上 3 寸，前正中線旁開 4 寸', ind:'腹痛、消化不良', cat:'' },
+  { name:'食竇', code:'SP17', mid:'sp', loc:'第五肋間隙，前正中線旁開 6 寸', ind:'胸脅脹痛', cat:'' },
+  { name:'天谿', code:'SP18', mid:'sp', loc:'第四肋間隙，前正中線旁開 6 寸', ind:'胸痛、咳嗽', cat:'' },
+  { name:'胸鄉', code:'SP19', mid:'sp', loc:'第三肋間隙，前正中線旁開 6 寸', ind:'胸脅脹痛', cat:'' },
+  { name:'周榮', code:'SP20', mid:'sp', loc:'第二肋間隙，前正中線旁開 6 寸', ind:'咳嗽、胸悶', cat:'' },
+  { name:'大包', code:'SP21', mid:'sp', loc:'腋中線，第六肋間隙', ind:'胸脅痛、全身痠痛', cat:'脾之大絡' },
+
+  // ===== 足厥陰肝經 (LR) =====
+  { name:'大敦', code:'LR1', mid:'lr', loc:'大趾外側，指甲角旁 0.1 寸', ind:'疝氣、遺尿、崩漏', cat:'井穴' },
+  { name:'行間', code:'LR2', mid:'lr', loc:'第一、二趾蹼緣後方', ind:'頭痛、眼疾、月經不調', cat:'滎穴' },
+  { name:'太衝', code:'LR3', mid:'lr', loc:'第一、二蹠骨間，蹠趾關節後', ind:'頭痛、眩暈、高血壓', cat:'輸穴、原穴' },
+  { name:'中封', code:'LR4', mid:'lr', loc:'內踝前 1 寸，脛骨前肌腱內側', ind:'疝氣、遺精、小便不利', cat:'經穴' },
+  { name:'蠡溝', code:'LR5', mid:'lr', loc:'內踝尖上 5 寸，脛骨內側面', ind:'月經不調、帶下', cat:'絡穴' },
+  { name:'中都', code:'LR6', mid:'lr', loc:'內踝尖上 7 寸，脛骨內側面', ind:'腹痛、崩漏', cat:'郄穴' },
+  { name:'膝關', code:'LR7', mid:'lr', loc:'陰陵泉後 1 寸', ind:'膝關節痛', cat:'' },
+  { name:'曲泉', code:'LR8', mid:'lr', loc:'屈膝，膝內橫紋內側端', ind:'月經不調、膝痛', cat:'合穴' },
+  { name:'陰包', code:'LR9', mid:'lr', loc:'股骨內上髁上 4 寸', ind:'月經不調、小便不利', cat:'' },
+  { name:'足五里', code:'LR10', mid:'lr', loc:'氣衝直下 3 寸', ind:'小便不利、小腹脹痛', cat:'' },
+  { name:'陰廉', code:'LR11', mid:'lr', loc:'氣衝直下 2 寸', ind:'月經不調、帶下', cat:'' },
+  { name:'急脈', code:'LR12', mid:'lr', loc:'氣衝外下 0.5 寸', ind:'疝氣、腹痛', cat:'' },
+  { name:'章門', code:'LR13', mid:'lr', loc:'第十一肋骨遊離端下緣', ind:'腹脹、泄瀉', cat:'脾募穴、臟會' },
+  { name:'期門', code:'LR14', mid:'lr', loc:'乳頭直下，第六肋間隙', ind:'胸脅脹痛、嘔吐', cat:'肝募穴' },
+
+  // ===== 足少陰腎經 (KI) =====
+  { name:'湧泉', code:'KI1', mid:'ki', loc:'足底前 1/3 凹陷，屈趾足心最凹處', ind:'中風昏迷、頭痛、失眠', cat:'井穴' },
+  { name:'然谷', code:'KI2', mid:'ki', loc:'足舟骨粗隆下緣凹陷', ind:'月經不調、糖尿病', cat:'滎穴' },
+  { name:'太谿', code:'KI3', mid:'ki', loc:'內踝尖與跟腱之間凹陷', ind:'腰痛、耳鳴、失眠', cat:'輸穴、原穴' },
+  { name:'大鐘', code:'KI4', mid:'ki', loc:'太谿下 0.5 寸，跟腱附著部前緣', ind:'咳血、足跟痛', cat:'絡穴' },
+  { name:'水泉', code:'KI5', mid:'ki', loc:'太谿直下 1 寸', ind:'月經不調、小便不利', cat:'郄穴' },
+  { name:'照海', code:'KI6', mid:'ki', loc:'內踝尖直下凹陷', ind:'失眠、咽喉痛、月經不調', cat:'' },
+  { name:'復溜', code:'KI7', mid:'ki', loc:'太谿上 2 寸，跟腱前緣', ind:'水腫、盜汗', cat:'經穴' },
+  { name:'交信', code:'KI8', mid:'ki', loc:'太谿上 2 寸，復溜前 0.5 寸', ind:'月經不調、腹瀉', cat:'陰蹻郄穴' },
+  { name:'築賓', code:'KI9', mid:'ki', loc:'太谿上 5 寸，腓腸肌內側下方', ind:'癲癇、嘔吐', cat:'陰維郄穴' },
+  { name:'陰谷', code:'KI10', mid:'ki', loc:'膕橫紋內側端，半腱肌腱與半膜肌腱間', ind:'陽痿、小便不利、膝痛', cat:'合穴' },
+  { name:'橫骨', code:'KI11', mid:'ki', loc:'臍下 5 寸，前正中線旁開 0.5 寸', ind:'遺精、小便不利', cat:'' },
+  { name:'大赫', code:'KI12', mid:'ki', loc:'臍下 4 寸，前正中線旁開 0.5 寸', ind:'陽痿、白帶', cat:'' },
+  { name:'氣穴', code:'KI13', mid:'ki', loc:'臍下 3 寸，前正中線旁開 0.5 寸', ind:'月經不調、腹瀉', cat:'' },
+  { name:'四滿', code:'KI14', mid:'ki', loc:'臍下 2 寸，前正中線旁開 0.5 寸', ind:'腹痛、水腫', cat:'' },
+  { name:'中注', code:'KI15', mid:'ki', loc:'臍下 1 寸，前正中線旁開 0.5 寸', ind:'月經不調、便秘', cat:'' },
+  { name:'肓俞', code:'KI16', mid:'ki', loc:'臍旁開 0.5 寸', ind:'腹痛、便秘', cat:'' },
+  { name:'商曲', code:'KI17', mid:'ki', loc:'臍上 2 寸，前正中線旁開 0.5 寸', ind:'胃痛、便秘', cat:'' },
+  { name:'石關', code:'KI18', mid:'ki', loc:'臍上 3 寸，前正中線旁開 0.5 寸', ind:'胃痛、嘔吐', cat:'' },
+  { name:'陰都', code:'KI19', mid:'ki', loc:'臍上 4 寸，前正中線旁開 0.5 寸', ind:'腹脹、腹痛', cat:'' },
+  { name:'腹通谷', code:'KI20', mid:'ki', loc:'臍上 5 寸，前正中線旁開 0.5 寸', ind:'腹脹、嘔吐', cat:'' },
+  { name:'幽門', code:'KI21', mid:'ki', loc:'臍上 6 寸，前正中線旁開 0.5 寸', ind:'腹痛、嘔吐', cat:'' },
+  { name:'步廊', code:'KI22', mid:'ki', loc:'第五肋間隙，前正中線旁開 2 寸', ind:'咳嗽、胸悶', cat:'' },
+  { name:'神封', code:'KI23', mid:'ki', loc:'第四肋間隙，前正中線旁開 2 寸', ind:'咳嗽、胸痛', cat:'' },
+  { name:'靈墟', code:'KI24', mid:'ki', loc:'第三肋間隙，前正中線旁開 2 寸', ind:'咳嗽、乳癰', cat:'' },
+  { name:'神藏', code:'KI25', mid:'ki', loc:'第二肋間隙，前正中線旁開 2 寸', ind:'咳嗽、氣喘', cat:'' },
+  { name:'彧中', code:'KI26', mid:'ki', loc:'第一肋間隙，前正中線旁開 2 寸', ind:'咳嗽、胸悶', cat:'' },
+  { name:'俞府', code:'KI27', mid:'ki', loc:'鎖骨下緣，前正中線旁開 2 寸', ind:'咳嗽、氣喘', cat:'' },
+
+  // ===== 任脈 (CV) =====
+  { name:'會陰', code:'CV1', mid:'cv', loc:'會陰部正中，肛門與生殖器中間', ind:'遺精、小便不利、昏迷', cat:'' },
+  { name:'曲骨', code:'CV2', mid:'cv', loc:'恥骨聯合上緣中點', ind:'遺精、月經不調', cat:'' },
+  { name:'中極', code:'CV3', mid:'cv', loc:'臍下 4 寸', ind:'遺尿、陽痿、月經不調', cat:'膀胱募穴' },
+  { name:'關元', code:'CV4', mid:'cv', loc:'臍下 3 寸', ind:'虛勞、陽痿、保健要穴', cat:'小腸募穴' },
+  { name:'石門', code:'CV5', mid:'cv', loc:'臍下 2 寸', ind:'腹痛、水腫', cat:'三焦募穴' },
+  { name:'氣海', code:'CV6', mid:'cv', loc:'臍下 1.5 寸', ind:'氣虛、腹痛、保健要穴', cat:'' },
+  { name:'陰交', code:'CV7', mid:'cv', loc:'臍下 1 寸', ind:'腹痛、月經不調', cat:'' },
+  { name:'神闕', code:'CV8', mid:'cv', loc:'臍中央', ind:'腹痛、虛脫（禁針，可灸）', cat:'' },
+  { name:'水分', code:'CV9', mid:'cv', loc:'臍上 1 寸', ind:'水腫、小便不利', cat:'' },
+  { name:'下脘', code:'CV10', mid:'cv', loc:'臍上 2 寸', ind:'胃痛、腹脹', cat:'' },
+  { name:'建里', code:'CV11', mid:'cv', loc:'臍上 3 寸', ind:'胃痛、嘔吐', cat:'' },
+  { name:'中脘', code:'CV12', mid:'cv', loc:'臍上 4 寸', ind:'胃痛、腹脹、消化不良', cat:'胃募穴、腑會' },
+  { name:'上脘', code:'CV13', mid:'cv', loc:'臍上 5 寸', ind:'胃痛、嘔吐、癲癇', cat:'' },
+  { name:'巨闕', code:'CV14', mid:'cv', loc:'臍上 6 寸', ind:'心痛、胸悶', cat:'心募穴' },
+  { name:'鳩尾', code:'CV15', mid:'cv', loc:'胸劍結合部下 1 寸', ind:'胸痛、癲癇', cat:'絡穴' },
+  { name:'中庭', code:'CV16', mid:'cv', loc:'胸劍結合部中點', ind:'胸悶、嘔吐', cat:'' },
+  { name:'膻中', code:'CV17', mid:'cv', loc:'前正中線平第四肋間隙', ind:'胸悶、氣短、乳汁不足', cat:'心包募穴、氣會' },
+  { name:'玉堂', code:'CV18', mid:'cv', loc:'膻中上 1.6 寸', ind:'咳嗽、胸痛', cat:'' },
+  { name:'紫宮', code:'CV19', mid:'cv', loc:'玉堂上 1.6 寸', ind:'咳嗽、胸悶', cat:'' },
+  { name:'華蓋', code:'CV20', mid:'cv', loc:'紫宮上 1.6 寸', ind:'咳嗽、氣喘', cat:'' },
+  { name:'璇璣', code:'CV21', mid:'cv', loc:'華蓋上 1 寸', ind:'咳嗽、咽喉腫痛', cat:'' },
+  { name:'天突', code:'CV22', mid:'cv', loc:'胸骨上窩正中', ind:'咳嗽、氣喘、咽喉腫痛', cat:'' },
+  { name:'廉泉', code:'CV23', mid:'cv', loc:'喉結上方，舌骨上緣', ind:'失語、吞咽困難', cat:'' },
+  { name:'承漿', code:'CV24', mid:'cv', loc:'頦唇溝正中凹陷', ind:'面癱、牙痛、流涎', cat:'' },
+
+  // ===== 督脈 (GV) =====
+  { name:'長強', code:'GV1', mid:'gv', loc:'尾骨尖端與肛門之間中點', ind:'痔瘡、腹瀉、腰痛', cat:'' },
+  { name:'腰俞', code:'GV2', mid:'gv', loc:'骶管裂孔', ind:'腰痛、月經不調', cat:'' },
+  { name:'腰陽關', code:'GV3', mid:'gv', loc:'第四腰椎棘突下凹陷', ind:'腰痛、陽痿', cat:'' },
+  { name:'命門', code:'GV4', mid:'gv', loc:'第二腰椎棘突下凹陷', ind:'陽痿、腰痛、保健要穴', cat:'' },
+  { name:'懸樞', code:'GV5', mid:'gv', loc:'第一腰椎棘突下凹陷', ind:'腰痛、消化不良', cat:'' },
+  { name:'脊中', code:'GV6', mid:'gv', loc:'第十一胸椎棘突下凹陷', ind:'腹瀉、癲癇', cat:'' },
+  { name:'中樞', code:'GV7', mid:'gv', loc:'第十胸椎棘突下凹陷', ind:'黃疸、腰痛', cat:'' },
+  { name:'筋縮', code:'GV8', mid:'gv', loc:'第九胸椎棘突下凹陷', ind:'癲癇、脊背痛', cat:'' },
+  { name:'至陽', code:'GV9', mid:'gv', loc:'第七胸椎棘突下凹陷', ind:'咳嗽、胸悶、黃疸', cat:'' },
+  { name:'靈臺', code:'GV10', mid:'gv', loc:'第六胸椎棘突下凹陷', ind:'咳嗽、脊背痛', cat:'' },
+  { name:'神道', code:'GV11', mid:'gv', loc:'第五胸椎棘突下凹陷', ind:'心悸、失眠', cat:'' },
+  { name:'身柱', code:'GV12', mid:'gv', loc:'第三胸椎棘突下凹陷', ind:'咳嗽、癲癇', cat:'' },
+  { name:'陶道', code:'GV13', mid:'gv', loc:'第一胸椎棘突下凹陷', ind:'發熱、頭痛、項強', cat:'' },
+  { name:'大椎', code:'GV14', mid:'gv', loc:'第七頸椎棘突下凹陷', ind:'發熱、感冒、頸項強痛', cat:'要穴' },
+  { name:'啞門', code:'GV15', mid:'gv', loc:'後髮際正中直上 0.5 寸', ind:'失語、頭痛', cat:'' },
+  { name:'風府', code:'GV16', mid:'gv', loc:'後髮際正中直上 1 寸', ind:'頭痛、中風、眩暈', cat:'' },
+  { name:'腦戶', code:'GV17', mid:'gv', loc:'風府上 1.5 寸', ind:'頭痛、眩暈', cat:'' },
+  { name:'強間', code:'GV18', mid:'gv', loc:'腦戶上 1.5 寸', ind:'頭痛、失眠', cat:'' },
+  { name:'後頂', code:'GV19', mid:'gv', loc:'強間上 1.5 寸', ind:'頭痛、眩暈', cat:'' },
+  { name:'百會', code:'GV20', mid:'gv', loc:'頭頂正中，兩耳尖連線中點', ind:'頭痛、眩暈、脫肛、失眠', cat:'要穴' },
+  { name:'前頂', code:'GV21', mid:'gv', loc:'百會前 1.5 寸', ind:'頭痛、眩暈', cat:'' },
+  { name:'囟會', code:'GV22', mid:'gv', loc:'前頂前 1.5 寸', ind:'頭痛、鼻塞', cat:'' },
+  { name:'上星', code:'GV23', mid:'gv', loc:'前髮際正中直上 1 寸', ind:'頭痛、鼻塞、眼疾', cat:'' },
+  { name:'神庭', code:'GV24', mid:'gv', loc:'前髮際正中直上 0.5 寸', ind:'頭痛、失眠、鼻塞', cat:'' },
+  { name:'素髎', code:'GV25', mid:'gv', loc:'鼻尖正中', ind:'鼻塞、昏迷、休克', cat:'' },
+  { name:'水溝', code:'GV26', mid:'gv', loc:'人中溝上 1/3 與下 2/3 交界處', ind:'昏迷、中風、腰痛', cat:'急救要穴' },
+  { name:'兌端', code:'GV27', mid:'gv', loc:'上唇尖端，人中溝下端', ind:'牙痛、昏迷', cat:'' },
+  { name:'齦交', code:'GV28', mid:'gv', loc:'上唇繫帶與牙齦交界處', ind:'牙痛、痔瘡', cat:'' },
+];
+
+// ===================================================================
+// APP STATE
+// ===================================================================
+let selectedPoint = null;
+let searchQuery = '';
+let openMeridians = new Set();
+
+document.getElementById('totalPoints').textContent = POINTS.length;
+
+// ===================================================================
+// RENDER MERIDIAN LIST
+// ===================================================================
+function renderMeridianList(points, query) {
+  const container = document.getElementById('meridianList');
+  container.innerHTML = '';
+
+  if (query && query.trim()) {
+    // Search mode: flat results
+    const q = query.trim().toLowerCase();
+    const results = points.filter(p => {
+      const searchText = `${p.name} ${p.code} ${p.ind} ${getMeridian(p.mid).name} ${p.loc}`.toLowerCase();
+      return searchText.includes(q);
+    });
+
+    if (results.length === 0) {
+      container.innerHTML = '<div class="no-results">❌ 未找到符合「' + query.trim() + '」的穴位</div>';
+      return;
+    }
+
+    // Group by meridian
+    const grouped = {};
+    results.forEach(p => {
+      const mid = p.mid;
+      if (!grouped[mid]) grouped[mid] = [];
+      grouped[mid].push(p);
+    });
+
+    const sortedMids = Object.keys(grouped).sort((a, b) => {
+      const idxA = MERIDIANS.findIndex(m => m.id === a);
+      const idxB = MERIDIANS.findIndex(m => m.id === b);
+      return idxA - idxB;
+    });
+
+    sortedMids.forEach(mid => {
+      const mer = getMeridian(mid);
+      const grp = document.createElement('div');
+      grp.className = 'meridian-group';
+      grp.innerHTML = `<div class="meridian-group-label">${mer.group}</div>`;
+
+      const items = grouped[mid];
+      items.forEach(p => {
+        const item = document.createElement('div');
+        item.className = 'acupoint-item';
+        if (selectedPoint && selectedPoint.code === p.code) item.classList.add('active');
+        const highlightedName = highlightText(p.name, q);
+        item.innerHTML = `<span class="point-code">${p.code}</span><span class="point-name">${highlightedName}</span>`;
+        item.addEventListener('click', () => selectPoint(p));
+        grp.appendChild(item);
+      });
+      container.appendChild(grp);
+    });
+  } else {
+    // Meridian tree mode
+    const groups = ['手三陰經', '手三陽經', '足三陽經', '足三陰經', '奇經'];
+
+    groups.forEach(groupName => {
+      const groupMeridians = MERIDIANS.filter(m => m.group === groupName);
+      if (groupMeridians.length === 0) return;
+
+      const grpDiv = document.createElement('div');
+      grpDiv.className = 'meridian-group';
+      const label = document.createElement('div');
+      label.className = 'meridian-group-label';
+      label.textContent = groupName;
+      grpDiv.appendChild(label);
+
+      groupMeridians.forEach(mer => {
+        const meridiansPoints = points.filter(p => p.mid === mer.id);
+        if (meridiansPoints.length === 0) return;
+
+        const item = document.createElement('div');
+        item.className = 'meridian-item';
+
+        const header = document.createElement('div');
+        header.className = 'meridian-header';
+        if (openMeridians.has(mer.id)) header.classList.add('open');
+
+        const arrow = document.createElement('span');
+        arrow.className = 'arrow';
+        arrow.textContent = '▶';
+        header.appendChild(arrow);
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'meridian-name';
+        nameSpan.textContent = mer.name;
+        header.appendChild(nameSpan);
+
+        const codeSpan = document.createElement('span');
+        codeSpan.className = 'meridian-code';
+        codeSpan.textContent = `(${mer.code})`;
+        header.appendChild(codeSpan);
+
+        const countSpan = document.createElement('span');
+        countSpan.className = 'meridian-count';
+        countSpan.textContent = `${meridiansPoints.length}穴`;
+        header.appendChild(countSpan);
+
+        header.addEventListener('click', () => {
+          if (openMeridians.has(mer.id)) {
+            openMeridians.delete(mer.id);
+          } else {
+            openMeridians.add(mer.id);
+          }
+          renderMeridianList(points, query);
+        });
+
+        item.appendChild(header);
+
+        const list = document.createElement('div');
+        list.className = 'acupoint-list';
+        if (openMeridians.has(mer.id)) list.classList.add('open');
+
+        meridiansPoints.forEach(p => {
+          const pointEl = document.createElement('div');
+          pointEl.className = 'acupoint-item';
+          if (selectedPoint && selectedPoint.code === p.code) pointEl.classList.add('active');
+          pointEl.innerHTML = `<span class="point-code">${p.code}</span><span class="point-name">${p.name}</span>`;
+          pointEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            selectPoint(p);
+          });
+          list.appendChild(pointEl);
+        });
+
+        item.appendChild(list);
+        grpDiv.appendChild(item);
+      });
+
+      container.appendChild(grpDiv);
+    });
+  }
+}
+
+// ===================================================================
+// SELECT POINT
+// ===================================================================
+function selectPoint(point) {
+  selectedPoint = point;
+  const mer = getMeridian(point.mid);
+
+  // Update active state in sidebar
+  document.querySelectorAll('.acupoint-item').forEach(el => el.classList.remove('active'));
+  // Re-render will handle the active state
+
+  // Show detail view
+  const emptyState = document.getElementById('emptyState');
+  const detailView = document.getElementById('detailView');
+  emptyState.style.display = 'none';
+  detailView.style.display = 'block';
+
+  // Build categories HTML
+  let catsHtml = '';
+  if (point.cat) {
+    point.cat.split('、').forEach(c => {
+      if (c.trim()) catsHtml += `<span class="cat-tag">${c.trim()}</span>`;
+    });
+  }
+
+  // Build functions array
+  const funcs = point.ind.split('、').filter(f => f.trim());
+
+  // Build meridian info
+  const merPath = mer.path || '';
+  const merGroup = mer.group || '';
+
+  detailView.innerHTML = `
+    <div class="detail-header fade-in">
+      <div class="point-title">
+        <h2>${point.name}</h2>
+        <span class="point-code-badge">${point.code}</span>
+      </div>
+      <div class="point-meridian">
+        <span class="meridian-tag">${mer.name}</span>
+        <span style="color:#b0a69a;font-size:0.8rem">${merGroup}</span>
+      </div>
+      ${catsHtml ? `<div class="detail-categories" style="margin-top:10px">${catsHtml}</div>` : ''}
+    </div>
+
+    <div class="detail-section fade-in">
+      <h3>📍 穴位位置</h3>
+      <div class="detail-location">${point.loc}</div>
+    </div>
+
+    <div class="detail-section fade-in">
+      <h3>⚕️ 功能與主治</h3>
+      <div class="detail-functions">
+        ${funcs.map(f => `<span class="func-tag">${f}</span>`).join('')}
+      </div>
+      <div class="section-body" style="margin-top:10px">
+        <p>此穴位於 <strong>${mer.name}</strong>，主要適用於 ${point.ind} 等症狀。</p>
+        ${point.cat ? `<p style="margin-top:6px">屬於 <strong>${point.cat}</strong>，為該經脈的重要特定穴。</p>` : ''}
+      </div>
+    </div>
+
+    <div class="detail-section fade-in">
+      <h3>🔗 所屬經絡</h3>
+      <div class="meridian-info-box">
+        <div class="path-label">經絡名稱</div>
+        <div class="path-text" style="font-weight:600;margin-bottom:8px">${mer.name}（${mer.code}）</div>
+        <div class="path-label">循行走向</div>
+        <div class="path-text">${merPath}</div>
+      </div>
+    </div>
+  `;
+
+  // Re-render sidebar to highlight
+  renderMeridianList(POINTS, searchQuery);
+
+  // Scroll to the active point
+  const activeEl = document.querySelector('.acupoint-item.active');
+  if (activeEl) activeEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+  // Mobile: close sidebar
+  if (window.innerWidth <= 768) {
+    document.getElementById('sidebar').classList.add('collapsed');
+  }
+}
+
+// ===================================================================
+// HELPERS
+// ===================================================================
+function getMeridian(id) {
+  return MERIDIANS.find(m => m.id === id) || { name: '未知', code: '', group: '', path: '' };
+}
+
+function highlightText(text, query) {
+  if (!query || !query.trim()) return text;
+  const q = query.trim();
+  const regex = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  return text.replace(regex, '<span class="highlight">$1</span>');
+}
+
+// ===================================================================
+// EVENTS
+// ===================================================================
+// Search
+let searchTimer;
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    searchQuery = e.target.value;
+    selectedPoint = null;
+    document.getElementById('emptyState').style.display = 'flex';
+    document.getElementById('detailView').style.display = 'none';
+    renderMeridianList(POINTS, searchQuery);
+  }, 150);
+});
+
+// Mobile menu toggle
+document.getElementById('menuBtn').addEventListener('click', () => {
+  const sidebar = document.getElementById('sidebar');
+  sidebar.classList.toggle('collapsed');
+});
+
+// Back button
+document.getElementById('backBtn').addEventListener('click', () => {
+  selectedPoint = null;
+  document.getElementById('emptyState').style.display = 'flex';
+  document.getElementById('detailView').style.display = 'none';
+  document.getElementById('sidebar').classList.remove('collapsed');
+});
+
+// ===================================================================
+// INIT
+// ===================================================================
+// Open first meridian group by default
+openMeridians.add('lu');
+renderMeridianList(POINTS, '');
+</script>
+</body>
+</html>
