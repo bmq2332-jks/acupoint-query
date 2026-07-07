@@ -20,27 +20,154 @@
   /* ===== LAYOUT ===== */
   #app {
     display: flex;
+    flex-direction: column;
     height: 100vh;
     max-width: 1400px;
     margin: 0 auto;
     background: #faf8f5;
     box-shadow: 0 0 40px rgba(0,0,0,0.06);
   }
-
-  /* ===== HEADER ===== */
-  #header {
-    display: none;
-    padding: 16px 20px;
-    background: #2c2418;
-    color: #f5f0eb;
-    font-size: 1.1rem;
-    font-weight: 600;
-    letter-spacing: 1px;
-    justify-content: space-between;
-    align-items: center;
+  .layout-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
   }
-  #header .brand span { color: #c9a86c; }
-  #menuBtn { background: none; border: none; color: #f5f0eb; font-size: 1.4rem; cursor: pointer; display: none; }
+
+  /* ===== TOP NAV ===== */
+  #topnav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 54px;
+    min-height: 54px;
+    background: linear-gradient(135deg, #2c2418 0%, #3d3228 100%);
+    color: #f5f0eb;
+    border-bottom: 2px solid #c9a86c;
+  }
+  #topnav .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  #topnav .nav-brand .nav-icon {
+    font-size: 1.3rem;
+    line-height: 1;
+  }
+  #topnav .nav-brand .nav-title {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+  }
+  #topnav .nav-brand .nav-title span {
+    color: #c9a86c;
+    font-weight: 400;
+  }
+  #topnav .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .nav-btn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #e8e0d8;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .nav-btn:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    border-color: rgba(255,255,255,0.3);
+  }
+  .nav-btn.home-btn {
+    background: #c9a86c;
+    color: #2c2418;
+    border-color: #c9a86c;
+    font-weight: 600;
+  }
+  .nav-btn.home-btn:hover {
+    background: #d4b87a;
+    border-color: #d4b87a;
+  }
+  .dd-arrow {
+    font-size: 0.6rem;
+    margin-left: 2px;
+    transition: transform 0.2s;
+  }
+  .dd-arrow.open { transform: rotate(180deg); }
+  #menuBtn {
+    display: none;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #e8e0d8;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  #menuBtn:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+  }
+
+  /* DROPDOWN */
+  .dropdown-wrap { position: relative; }
+  .dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 200px;
+    background: #fff;
+    border: 1px solid #e8e0d8;
+    border-radius: 10px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px);
+    transition: all 0.2s ease;
+    z-index: 1000;
+    overflow: hidden;
+  }
+  .dropdown-menu.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+  .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    font-size: 0.88rem;
+    color: #3d3228;
+    cursor: pointer;
+    transition: background 0.12s;
+    white-space: nowrap;
+  }
+  .dropdown-item:hover {
+    background: #f5f0eb;
+  }
+  .dropdown-item:active {
+    background: #e8e0d8;
+  }
+  .dropdown-item .item-icon { font-size: 1rem; }
+  .dropdown-divider {
+    height: 1px;
+    background: #e8e0d8;
+    margin: 4px 0;
+  }
+
+  /* ===== MOBILE HEADER (legacy, hidden on desktop) ===== */
+  #header { display: none; }
 
   /* ===== SIDEBAR ===== */
   #sidebar {
@@ -375,9 +502,12 @@
 
   /* RESPONSIVE */
   @media (max-width: 768px) {
-    #app { flex-direction: column; }
-    #header { display: flex; }
+    #topnav { padding: 0 16px; }
+    #topnav .nav-brand .nav-title { font-size: 0.9rem; letter-spacing: 1px; }
+    .nav-btn { padding: 5px 10px; font-size: 0.75rem; }
+    .nav-btn.home-btn .home-label { display: none; }
     #menuBtn { display: block; }
+    #header { display: flex; }
     #sidebar {
       width: 100%;
       min-width: 0;
@@ -386,8 +516,18 @@
       border-bottom: 1px solid #e8e0d8;
     }
     #sidebar.collapsed { max-height: 0; overflow: hidden; }
+    .layout-body { flex-direction: column; }
     #main { padding: 24px 20px; }
     .detail-header .point-title h2 { font-size: 1.5rem; }
+    .dropdown-menu {
+      min-width: 180px;
+      right: 0;
+      left: auto;
+    }
+  }
+  @media (max-width: 420px) {
+    #topnav .nav-brand .nav-title { font-size: 0.8rem; }
+    .nav-btn { padding: 4px 8px; font-size: 0.7rem; }
   }
 
   /* NO RESULTS */
@@ -400,6 +540,71 @@
 
   /* HIGHLIGHT */
   .highlight { background: #f7e9c0; padding: 0 2px; border-radius: 2px; }
+
+  /* MODAL OVERLAY */
+  #modalOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+    backdrop-filter: blur(2px);
+  }
+  #modalOverlay.open { display: flex; }
+  .modal-box {
+    background: #fff;
+    border-radius: 14px;
+    max-width: 480px;
+    width: 100%;
+    max-height: 80vh;
+    overflow: hidden;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.2);
+    animation: modalIn 0.2s ease-out;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.96) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 22px;
+    border-bottom: 1px solid #e8e0d8;
+    background: #faf8f5;
+  }
+  .modal-header h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #2c2418;
+  }
+  #modalClose {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #8a7a6a;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+  }
+  #modalClose:hover { color: #3d3228; }
+  .modal-body {
+    padding: 20px 22px;
+    overflow-y: auto;
+    max-height: 60vh;
+  }
+  .modal-body pre {
+    font-family: -apple-system, 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.8;
+    color: #3d3228;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin: 0;
+  }
 
   /* ANIMATION */
   .fade-in { animation: fadeIn 0.25s ease-out; }
@@ -422,34 +627,84 @@
 </head>
 <body>
 <div id="app">
-  <!-- Mobile header -->
-  <div id="header">
-    <span class="brand">經絡穴位<span>查詢系統</span></span>
-    <button id="menuBtn" aria-label="選單">☰</button>
-  </div>
+  <!-- Top Navigation Bar -->
+  <nav id="topnav">
+    <div class="nav-brand">
+      <span class="nav-icon">☯</span>
+      <span class="nav-title">經絡穴位<span>查詢系統</span></span>
+    </div>
+    <div class="nav-right">
+      <button class="nav-btn home-btn" id="homeBtn">🏠 回首頁</button>
+      <div class="dropdown-wrap">
+        <button class="nav-btn" id="dropdownToggle">
+          選單
+          <span class="dd-arrow">▾</span>
+        </button>
+        <div class="dropdown-menu" id="dropdownMenu">
+          <div class="dropdown-item" data-action="home">
+            <span class="item-icon">🏠</span> 回首頁
+          </div>
+          <div class="dropdown-item" data-action="meridians">
+            <span class="item-icon">📖</span> 經穴總覽
+          </div>
+          <div class="dropdown-item" data-action="acu-guide">
+            <span class="item-icon">🪡</span> 針灸指南
+          </div>
+          <div class="dropdown-item" data-action="wellness">
+            <span class="item-icon">🌿</span> 養生保健
+          </div>
+          <div class="dropdown-divider"></div>
+          <div class="dropdown-item" data-action="about">
+            <span class="item-icon">ℹ️</span> 關於本站
+          </div>
+        </div>
+      </div>
+      <button id="menuBtn" aria-label="選單">☰</button>
+    </div>
+  </nav>
 
-  <!-- Sidebar -->
-  <div id="sidebar">
-    <div class="sidebar-header">
-      <h1>經絡穴位<small>Traditional Chinese Medicine Acupoint Reference</small></h1>
-      <div class="total-count">收錄 14 經脈 · <span id="totalPoints">0</span> 穴</div>
+  <div class="layout-body">
+    <!-- Mobile header (shown on mobile only) -->
+    <div id="header">
+      <span class="brand">經絡穴位<span>查詢系統</span></span>
     </div>
-    <div id="searchWrap">
-      <input type="text" id="searchInput" placeholder="搜尋穴名、代碼、主治功能…" autocomplete="off">
-    </div>
-    <div id="meridianList"></div>
-  </div>
 
-  <!-- Main content -->
-  <div id="main">
-    <button id="backBtn">← 返回列表</button>
-    <div id="emptyState">
-      <div class="icon">☯</div>
-      <h2>請選擇一個穴位</h2>
-      <p>從左側經絡列表中點選穴位，查看詳細位置、功能與主治</p>
+    <!-- Sidebar -->
+    <div id="sidebar">
+      <div class="sidebar-header">
+        <h1>經絡穴位<small>Traditional Chinese Medicine Acupoint Reference</small></h1>
+        <div class="total-count">收錄 14 經脈 · <span id="totalPoints">0</span> 穴</div>
+      </div>
+      <div id="searchWrap">
+        <input type="text" id="searchInput" placeholder="搜尋穴名、代碼、主治功能…" autocomplete="off">
+      </div>
+      <div id="meridianList"></div>
     </div>
+
+    <!-- Main content -->
+    <div id="main">
+      <button id="backBtn">← 返回列表</button>
+      <div id="emptyState">
+        <div class="icon">☯</div>
+        <h2>請選擇一個穴位</h2>
+        <p>從左側經絡列表中點選穴位，查看詳細位置、功能與主治</p>
+      </div>
     <div id="detailView"></div>
   </div>
+</div>
+
+<!-- Modal overlay -->
+<div id="modalOverlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="modalTitle"></h3>
+      <button id="modalClose" aria-label="關閉">&times;</button>
+    </div>
+    <div class="modal-body">
+      <pre id="modalContent"></pre>
+    </div>
+  </div>
+</div>
 </div>
 
 <script>
@@ -5442,6 +5697,113 @@ function highlightText(text, query) {
 // ===================================================================
 // EVENTS
 // ===================================================================
+
+// Home button — reset to initial empty state
+function goHome() {
+  selectedPoint = null;
+  searchQuery = '';
+  document.getElementById('searchInput').value = '';
+  document.getElementById('emptyState').style.display = 'flex';
+  document.getElementById('detailView').style.display = 'none';
+  document.getElementById('sidebar').classList.remove('collapsed');
+  renderMeridianList(POINTS, '');
+  closeDropdown();
+}
+
+document.getElementById('homeBtn').addEventListener('click', goHome);
+
+// Dropdown toggle
+const dropdownMenu = document.getElementById('dropdownMenu');
+const dropdownToggle = document.getElementById('dropdownToggle');
+
+function closeDropdown() {
+  dropdownMenu.classList.remove('open');
+  dropdownToggle.querySelector('.dd-arrow').classList.remove('open');
+}
+
+dropdownToggle.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const isOpen = dropdownMenu.classList.contains('open');
+  if (isOpen) { closeDropdown(); }
+  else {
+    dropdownMenu.classList.add('open');
+    dropdownToggle.querySelector('.dd-arrow').classList.add('open');
+  }
+});
+
+// Close dropdown on outside click
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.dropdown-wrap')) closeDropdown();
+});
+
+// Dropdown item actions
+document.querySelectorAll('.dropdown-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const action = item.dataset.action;
+    closeDropdown();
+    switch (action) {
+      case 'home':
+        goHome();
+        break;
+      case 'meridians':
+        selectedPoint = null;
+        document.getElementById('emptyState').style.display = 'flex';
+        document.getElementById('detailView').style.display = 'none';
+        document.getElementById('sidebar').classList.remove('collapsed');
+        document.getElementById('meridianList').scrollTop = 0;
+        break;
+      case 'acu-guide':
+        showModal('🪡 針灸指南',
+          '針灸是中國傳統醫學的重要療法，透過刺激特定穴位來調節人體氣血運行。\n\n' +
+          '• 毫針刺法：使用不鏽鋼毫針刺入穴位，透過提插、捻轉等手法調節氣機。\n' +
+          '• 艾灸療法：以艾草燃燒溫熱刺激穴位，可分艾炷灸、艾條灸、溫針灸等。\n' +
+          '• 針刺深度因部位而異：頭面淺刺（0.3-0.5寸），四肢可深刺（1-2寸），胸背宜淺刺（0.3-0.5寸）以防傷及內臟。\n\n' +
+          '⚠️ 注意：針灸須由專業中醫師操作，請勿自行嘗試。');
+        break;
+      case 'wellness':
+        showModal('🌿 養生保健',
+          '經絡養生是中醫保健的核心，以下為日常保健建議：\n\n' +
+          '• 按壓足三里（ST36）：每日按揉3-5分鐘，健脾胃、強體魄，為「保健第一要穴」。\n' +
+          '• 搓揉湧泉（KI1）：每晚睡前搓熱腳底，補腎固本、改善睡眠。\n' +
+          '• 按揉合谷（LI4）與太衝（LR3）：疏肝理氣、緩解頭痛與壓力。\n' +
+          '• 灸關元（CV4）與氣海（CV6）：艾條灸10-15分鐘，溫補元氣、增強免疫力。\n\n' +
+          '養生之道，貴在堅持。每日花5-10分鐘按壓穴位，長期下來必有收穫。');
+        break;
+      case 'about':
+        showModal('ℹ️ 關於本站',
+          '經絡穴位查詢系統 v2.0\n\n' +
+          '收錄 14 經脈 · 361 正經穴位\n' +
+          '提供穴名、代碼、位置、主治功能、針灸資訊等完整資料。\n\n' +
+          '📋 功能特色：\n' +
+          '• 十四經脈完整分類導覽\n' +
+          '• 全文搜尋（穴名、代碼、主治）\n' +
+          '• 穴位詳細資訊（位置、功能、針灸）\n' +
+          '• 行動裝置響應式設計\n\n' +
+          '資料來源：傳統中醫經絡學說\n' +
+          '聲明：本工具僅供參考學習，不構成醫療建議。');
+        break;
+    }
+  });
+});
+
+// Modal system
+const modalOverlay = document.getElementById('modalOverlay');
+const modalContent = document.getElementById('modalContent');
+const modalTitle = document.getElementById('modalTitle');
+
+function showModal(title, text) {
+  modalTitle.textContent = title;
+  modalContent.textContent = text;
+  modalOverlay.classList.add('open');
+}
+
+document.getElementById('modalClose').addEventListener('click', () => {
+  modalOverlay.classList.remove('open');
+});
+modalOverlay.addEventListener('click', (e) => {
+  if (e.target === modalOverlay) modalOverlay.classList.remove('open');
+});
+
 // Search
 let searchTimer;
 document.getElementById('searchInput').addEventListener('input', (e) => {
