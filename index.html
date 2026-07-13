@@ -406,6 +406,21 @@
     color: #3d3228;
   }
 
+  .body-diagram-section h3 {
+    margin-bottom: 4px;
+  }
+  .body-diagram-container {
+    background: #fdfcf9;
+    border-radius: 10px;
+    padding: 2px 6px;
+    border: 1px solid #e8ddd0;
+    overflow: hidden;
+  }
+  .body-diagram-container svg {
+    display: block;
+    margin: 0 auto;
+  }
+
   .detail-location {
     background: #f8f4ef;
     border-radius: 8px;
@@ -5659,6 +5674,13 @@ function selectPoint(point) {
       </div>
     </div>` : ''}
 
+    <div class="detail-section fade-in body-diagram-section">
+      <h3>🧍 身體穴位對照</h3>
+      <div class="body-diagram-container">
+        ${renderBodyDiagram(point.mid, (()=>{const pts=POINTS.filter(p=>p.mid===point.mid);return pts.indexOf(point);})())}
+      </div>
+    </div>
+
     <div class="detail-section fade-in">
       <h3>🔗 所屬經絡</h3>
       <div class="meridian-info-box">
@@ -5695,6 +5717,294 @@ function highlightText(text, query) {
   const q = query.trim();
   const regex = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
   return text.replace(regex, '<span class="highlight">$1</span>');
+}
+
+// ===================================================================
+// MERIDIAN BODY DIAGRAM — SVG 身體穴位對照圖
+// ===================================================================
+
+const BODY_COLORS = {
+  lu:'#e53935', pc:'#ff6f00', ht:'#c62828',
+  li:'#ffb300', te:'#ff8f00', si:'#f57c00',
+  st:'#fdd835', gb:'#f9a825', bl:'#1565c0',
+  sp:'#43a047', lr:'#2e7d32', ki:'#1b5e20',
+  cv:'#7b1fa2', gv:'#4a148c'
+};
+
+// Front-view meridians vs back-view
+const BODY_VIEW = {
+  lu:'front', pc:'front', ht:'front',
+  li:'front', te:'front', st:'front',
+  sp:'front', lr:'front', ki:'front', cv:'front',
+  gb:'front',
+  si:'back', bl:'back', gv:'back'
+};
+
+// Meridian pathway waypoints [x,y] on body SVG (viewBox 0 0 280 650)
+const MERIDIAN_WAYPOINTS = {
+  // 手三陰經 — 從胸走手
+  lu:[ [140,210],[140,175],[140,130],[110,100],[93,105],[86,190],[75,268],[64,290] ],
+  pc:[ [140,180],[140,145],[140,125],[106,100],[92,195],[83,272],[74,292] ],
+  ht:[ [140,160],[140,138],[140,118],[100,100],[95,195],[88,275],[83,290] ],
+  // 手三陽經 — 從手走頭（倒畫，由手往頭）
+  li:[ [60,290],[67,265],[76,180],[86,100],[128,92],[150,76],[158,50] ],
+  te:[ [71,292],[80,268],[92,185],[94,100],[132,90],[168,70],[182,52],[192,45] ],
+  si:[ [84,290],[86,265],[90,185],[100,100],[148,98],[175,115] ],
+  // 足三陽經 — 從頭走足
+  st:[ [158,50],[156,68],[152,88],[140,130],[140,175],[140,230],[140,292],[128,360],[122,440],[118,550],[120,588] ],
+  gb:[ [168,48],[184,52],[198,60],[208,82],[210,110],[202,170],[198,240],[195,292],[200,360],[210,440],[218,550],[220,588] ],
+  bl:[ [125,48],[140,22],[155,48],[168,72],[178,105],[185,175],[185,245],[185,295],[175,370],[168,460],[162,550],[158,590] ],
+  // 足三陰經 — 從足走胸
+  sp:[ [92,588],[100,555],[118,440],[132,360],[140,295],[148,240],[148,180] ],
+  lr:[ [96,590],[108,558],[125,440],[138,360],[145,295],[156,240],[162,180] ],
+  ki:[ [128,598],[130,558],[138,440],[145,360],[152,295],[158,240],[155,180] ],
+  // 奇經
+  cv:[ [140,298],[140,265],[140,220],[140,175],[140,130],[140,100],[142,78] ],
+  gv:[ [140,298],[140,330],[142,370],[145,460],[148,550],[148,108],[145,76],[140,35] ]
+};
+
+// Additional waypoints for SI shoulder-blade (back view)
+MERIDIAN_WAYPOINTS.si = [ [84,290],[86,265],[90,185],[100,100],[148,98],[175,115],[185,148],[178,100],[162,85],[156,62],[160,48] ];
+
+// ========================================================
+// SVG body outline templates (front / back)
+// ========================================================
+
+function bodySvgFront() {
+  return '<svg viewBox="0 0 280 650" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;max-height:420px">' +
+    // Head
+    '<ellipse cx="140" cy="42" rx="22" ry="26" fill="#f6f2ed" stroke="#b8aca0" stroke-width="1.3"/>' +
+    '<circle cx="131" cy="38" r="1.8" fill="#b8aca0"/><circle cx="149" cy="38" r="1.8" fill="#b8aca0"/>' +
+    '<path d="M135,50 Q140,54 145,50" stroke="#b8aca0" stroke-width="1.2" fill="none"/>' +
+    // Neck
+    '<rect x="134" y="66" width="12" height="16" rx="4" fill="#f6f2ed" stroke="#b8aca0" stroke-width="1.3"/>' +
+    // Torso
+    '<path d="M110,84 Q102,88 100,108 Q96,150 100,190 L103,292 Q104,302 113,302 L167,302 Q176,302 177,292 L180,190 Q184,150 180,108 Q178,88 170,84 Z"' +
+    '  fill="#f6f2ed" stroke="#b8aca0" stroke-width="1.3"/>' +
+    // Left arm
+    '<path d="M110,86 Q88,95 74,120 Q65,148 62,178 Q58,215 55,252 Q53,272 48,282"' +
+    '  fill="none" stroke="#f6f2ed" stroke-width="16" stroke-linecap="round"/>' +
+    '<path d="M110,86 Q88,95 74,120 Q65,148 62,178 Q58,215 55,252 Q53,272 48,282"' +
+    '  fill="none" stroke="#b8aca0" stroke-width="1.3" stroke-linecap="round"/>' +
+    // Right arm
+    '<path d="M170,86 Q192,95 206,120 Q215,148 218,178 Q222,215 225,252 Q227,272 232,282"' +
+    '  fill="none" stroke="#f6f2ed" stroke-width="16" stroke-linecap="round"/>' +
+    '<path d="M170,86 Q192,95 206,120 Q215,148 218,178 Q222,215 225,252 Q227,272 232,282"' +
+    '  fill="none" stroke="#b8aca0" stroke-width="1.3" stroke-linecap="round"/>' +
+    // Left leg
+    '<path d="M118,300 L116,370 Q114,440 116,510 Q117,555 119,585 L121,598"' +
+    '  fill="none" stroke="#f6f2ed" stroke-width="18" stroke-linecap="round"/>' +
+    '<path d="M118,300 L116,370 Q114,440 116,510 Q117,555 119,585 L121,598"' +
+    '  fill="none" stroke="#b8aca0" stroke-width="1.3" stroke-linecap="round"/>' +
+    // Right leg
+    '<path d="M162,300 L164,370 Q166,440 164,510 Q163,555 161,585 L159,598"' +
+    '  fill="none" stroke="#f6f2ed" stroke-width="18" stroke-linecap="round"/>' +
+    '<path d="M162,300 L164,370 Q166,440 164,510 Q163,555 161,585 L159,598"' +
+    '  fill="none" stroke="#b8aca0" stroke-width="1.3" stroke-linecap="round"/>' +
+    '</svg>';
+}
+
+function bodySvgBack() {
+  return '<svg viewBox="0 0 280 650" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;max-height:420px">' +
+    // Head (back)
+    '<ellipse cx="140" cy="42" rx="22" ry="26" fill="#f6f2ed" stroke="#b8aca0" stroke-width="1.3"/>' +
+    '<path d="M135,30 Q140,26 145,30" stroke="#b8aca0" stroke-width="1.0" fill="none"/>' +
+    // Neck
+    '<rect x="134" y="66" width="12" height="16" rx="4" fill="#f6f2ed" stroke="#b8aca0" stroke-width="1.3"/>' +
+    // Torso (back — slightly broader shoulders)
+    '<path d="M106,84 Q98,88 96,108 Q94,150 98,190 L100,292 Q101,302 110,302 L170,302 Q179,302 180,292 L182,190 Q186,150 184,108 Q182,88 174,84 Z"' +
+    '  fill="#f6f2ed" stroke="#b8aca0" stroke-width="1.3"/>' +
+    // Left arm
+    '<path d="M106,86 Q84,95 70,120 Q62,148 60,178 Q56,215 54,252 Q52,272 48,282"' +
+    '  fill="none" stroke="#f6f2ed" stroke-width="16" stroke-linecap="round"/>' +
+    '<path d="M106,86 Q84,95 70,120 Q62,148 60,178 Q56,215 54,252 Q52,272 48,282"' +
+    '  fill="none" stroke="#b8aca0" stroke-width="1.3" stroke-linecap="round"/>' +
+    // Right arm
+    '<path d="M174,86 Q196,95 210,120 Q218,148 220,178 Q224,215 226,252 Q228,272 232,282"' +
+    '  fill="none" stroke="#f6f2ed" stroke-width="16" stroke-linecap="round"/>' +
+    '<path d="M174,86 Q196,95 210,120 Q218,148 220,178 Q224,215 226,252 Q228,272 232,282"' +
+    '  fill="none" stroke="#b8aca0" stroke-width="1.3" stroke-linecap="round"/>' +
+    // Left leg
+    '<path d="M118,300 L116,370 Q114,440 116,510 Q117,555 119,585 L121,598"' +
+    '  fill="none" stroke="#f6f2ed" stroke-width="18" stroke-linecap="round"/>' +
+    '<path d="M118,300 L116,370 Q114,440 116,510 Q117,555 119,585 L121,598"' +
+    '  fill="none" stroke="#b8aca0" stroke-width="1.3" stroke-linecap="round"/>' +
+    // Right leg
+    '<path d="M162,300 L164,370 Q166,440 164,510 Q163,555 161,585 L159,598"' +
+    '  fill="none" stroke="#f6f2ed" stroke-width="18" stroke-linecap="round"/>' +
+    '<path d="M162,300 L164,370 Q166,440 164,510 Q163,555 161,585 L159,598"' +
+    '  fill="none" stroke="#b8aca0" stroke-width="1.3" stroke-linecap="round"/>' +
+    '</svg>';
+}
+
+// ========================================================
+// Build polyline path from waypoints
+// ========================================================
+function waypointsToPath(wp) {
+  if (!wp || wp.length < 2) return '';
+  return 'M' + wp.map(p => p[0]+','+p[1]).join(' L');
+}
+
+// Distribute N points evenly along a polyline defined by waypoints
+function distributeOnPolyline(wp, n) {
+  if (!wp || wp.length < 2 || n < 1) return [];
+  // Calculate cumulative segment lengths
+  const segs = [];
+  let totalLen = 0;
+  for (let i = 0; i < wp.length - 1; i++) {
+    const dx = wp[i+1][0] - wp[i][0];
+    const dy = wp[i+1][1] - wp[i][1];
+    const d = Math.sqrt(dx*dx + dy*dy);
+    segs.push({ i, len: d, cumLen: totalLen });
+    totalLen += d;
+  }
+  if (totalLen === 0) return [];
+  // Place n points evenly
+  const pts = [];
+  for (let k = 0; k < n; k++) {
+    const targetDist = (k / (n - 1 || 1)) * totalLen;
+    // Find which segment
+    let segIdx = 0;
+    for (let s = 0; s < segs.length; s++) {
+      if (targetDist >= segs[s].cumLen && (s === segs.length - 1 || targetDist < segs[s+1].cumLen)) {
+        segIdx = s;
+        break;
+      }
+      if (s === segs.length - 1) segIdx = s;
+    }
+    const seg = segs[segIdx];
+    const segStart = seg.cumLen;
+    const segLen = seg.len || 1;
+    const t = Math.min(Math.max((targetDist - segStart) / segLen, 0), 1);
+    const x = wp[seg.i][0] + (wp[seg.i+1][0] - wp[seg.i][0]) * t;
+    const y = wp[seg.i][1] + (wp[seg.i+1][1] - wp[seg.i][1]) * t;
+    pts.push({ x, y });
+  }
+  return pts;
+}
+
+// ========================================================
+// Main render function
+// ========================================================
+function renderBodyDiagram(merId, selectedIdx) {
+  const wp = MERIDIAN_WAYPOINTS[merId];
+  if (!wp || wp.length < 2) return '<p style="color:#b0a69a;font-size:0.9rem">暫無對應圖表</p>';
+
+  const mer = MERIDIANS.find(m => m.id === merId);
+  if (!mer) return '<p style="color:#b0a69a;font-size:0.9rem">暫無對應圖表</p>';
+
+  const isFront = BODY_VIEW[merId] !== 'back';
+  const svg = isFront ? bodySvgFront() : bodySvgBack();
+
+  // Parse as XML to inject meridian graphics
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svg, 'text/html');
+  const svgEl = doc.querySelector('svg');
+  if (!svgEl) return '<p style="color:#b0a69a;font-size:0.9rem">圖表載入錯誤</p>';
+
+  const ns = 'http://www.w3.org/2000/svg';
+  const color = BODY_COLORS[merId] || '#e53935';
+
+  // 1. Meridian pathway (line)
+  const path = document.createElementNS(ns, 'path');
+  path.setAttribute('d', waypointsToPath(wp));
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke', color);
+  path.setAttribute('stroke-width', '2.8');
+  path.setAttribute('stroke-linecap', 'round');
+  path.setAttribute('stroke-linejoin', 'round');
+  path.setAttribute('opacity', '0.7');
+  svgEl.appendChild(path);
+
+  // 2. Get points for this meridian
+  const merPoints = POINTS.filter(p => p.mid === merId);
+  const n = merPoints.length;
+  if (n === 0) {
+    svgEl.setAttribute('style', (svgEl.getAttribute('style')||'') + ';max-height:420px');
+    return svgEl.outerHTML;
+  }
+
+  // 3. Distribute dot positions
+  const positions = distributeOnPolyline(wp, n);
+
+  // 4. Draw dots
+  positions.forEach((pos, i) => {
+    // Small dot for every point
+    const dot = document.createElementNS(ns, 'circle');
+    dot.setAttribute('cx', pos.x);
+    dot.setAttribute('cy', pos.y);
+    dot.setAttribute('r', '3.5');
+    dot.setAttribute('fill', color);
+    dot.setAttribute('opacity', i === selectedIdx ? '1' : '0.5');
+    svgEl.appendChild(dot);
+
+    // Highlight ring for selected point
+    if (i === selectedIdx) {
+      const ring = document.createElementNS(ns, 'circle');
+      ring.setAttribute('cx', pos.x);
+      ring.setAttribute('cy', pos.y);
+      ring.setAttribute('r', '8');
+      ring.setAttribute('fill', 'none');
+      ring.setAttribute('stroke', '#e53935');
+      ring.setAttribute('stroke-width', '2.5');
+      ring.setAttribute('opacity', '0.9');
+      svgEl.appendChild(ring);
+
+      // Glow ring
+      const glow = document.createElementNS(ns, 'circle');
+      glow.setAttribute('cx', pos.x);
+      glow.setAttribute('cy', pos.y);
+      glow.setAttribute('r', '14');
+      glow.setAttribute('fill', 'none');
+      glow.setAttribute('stroke', color);
+      glow.setAttribute('stroke-width', '5');
+      glow.setAttribute('opacity', '0.2');
+      svgEl.appendChild(glow);
+
+      // Label for selected point
+      const label = document.createElementNS(ns, 'text');
+      label.setAttribute('x', pos.x + 14);
+      label.setAttribute('y', pos.y - 8);
+      label.setAttribute('fill', '#3d3228');
+      label.setAttribute('font-size', '10');
+      label.setAttribute('font-weight', 'bold');
+      label.textContent = merPoints[i] ? merPoints[i].code + ' ' + merPoints[i].name : '';
+      svgEl.appendChild(label);
+    }
+  });
+
+  // 5. Legend — meridian name + point count
+  const legend = document.createElementNS(ns, 'text');
+  legend.setAttribute('x', '10');
+  legend.setAttribute('y', '20');
+  legend.setAttribute('fill', color);
+  legend.setAttribute('font-size', '11');
+  legend.setAttribute('font-weight', 'bold');
+  legend.textContent = mer.name + '（' + n + '穴）';
+  svgEl.appendChild(legend);
+
+  // Direction hint
+  const dir = document.createElementNS(ns, 'text');
+  dir.setAttribute('x', '10');
+  dir.setAttribute('y', '34');
+  dir.setAttribute('fill', '#b0a69a');
+  dir.setAttribute('font-size', '9');
+  dir.textContent = '● 當前穴位  —— 經絡走向';
+  svgEl.appendChild(dir);
+
+  // Current point name
+  const ptName = document.createElementNS(ns, 'text');
+  ptName.setAttribute('x', '270');
+  ptName.setAttribute('y', '20');
+  ptName.setAttribute('fill', '#e53935');
+  ptName.setAttribute('font-size', '11');
+  ptName.setAttribute('font-weight', 'bold');
+  ptName.setAttribute('text-anchor', 'end');
+  ptName.textContent = merPoints[selectedIdx] ? merPoints[selectedIdx].code + ' ' + merPoints[selectedIdx].name : '';
+  svgEl.appendChild(ptName);
+
+  svgEl.setAttribute('style', (svgEl.getAttribute('style')||'') + ';max-height:420px');
+  return svgEl.outerHTML;
 }
 
 // ===================================================================
